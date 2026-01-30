@@ -16,7 +16,7 @@ class ComtradeClient:
     """Client for UN Comtrade API v1."""
 
     BASE_URL = "https://comtradeapi.un.org"
-    DATA_URL = f"{BASE_URL}/data/v1/get/C/A"  # Commodities, Annual
+    DATA_URL = f"{BASE_URL}/data/v1/get/C/A/HS"  # Commodities, Annual, HS classification
     REFS_URL = f"{BASE_URL}/files/v1/app/reference"
 
     def __init__(self, api_key: Optional[str] = None):

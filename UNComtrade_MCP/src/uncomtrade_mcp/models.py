@@ -7,15 +7,15 @@ from typing import Optional
 class TradeRecord(BaseModel):
     """A single trade record from UN Comtrade."""
 
-    period: int = Field(description="Year of the trade record")
+    period: str = Field(description="Year of the trade record")
     reporter_code: int = Field(alias="reporterCode", description="Reporter country code")
-    reporter: str = Field(alias="reporterDesc", description="Reporter country name")
+    reporter: Optional[str] = Field(alias="reporterDesc", default=None, description="Reporter country name")
     partner_code: int = Field(alias="partnerCode", description="Partner country code")
-    partner: str = Field(alias="partnerDesc", description="Partner country name")
+    partner: Optional[str] = Field(alias="partnerDesc", default=None, description="Partner country name")
     flow_code: str = Field(alias="flowCode", description="Trade flow code (M/X)")
-    flow: str = Field(alias="flowDesc", description="Trade flow description")
+    flow: Optional[str] = Field(alias="flowDesc", default=None, description="Trade flow description")
     commodity_code: str = Field(alias="cmdCode", description="HS commodity code")
-    commodity: str = Field(alias="cmdDesc", description="Commodity description")
+    commodity: Optional[str] = Field(alias="cmdDesc", default=None, description="Commodity description")
     trade_value: Optional[float] = Field(
         alias="primaryValue", default=None, description="Trade value in USD"
     )
@@ -28,6 +28,18 @@ class TradeRecord(BaseModel):
     quantity_unit: Optional[str] = Field(
         alias="qtyUnitAbbr", default=None, description="Quantity unit abbreviation"
     )
+
+    @property
+    def reporter_name(self) -> str:
+        """Get reporter name with fallback to code."""
+        return self.reporter or f"Country {self.reporter_code}"
+
+    @property
+    def partner_name(self) -> str:
+        """Get partner name with fallback to code."""
+        if self.partner_code == 0:
+            return "World"
+        return self.partner or f"Country {self.partner_code}"
 
     class Config:
         populate_by_name = True

@@ -289,57 +289,64 @@ async def get_commodity_trade_summary(
     commodity: str,
     year: str = "2023",
     flow: str = "M",
-    top_n: int = 20,
+    reporters: str = "842,156,276,392,410,36,124,76,380,528",
 ) -> str:
     """
-    Get a global trade summary for a commodity showing top importers/exporters.
+    Get trade summary for a commodity across major economies.
 
     Args:
         commodity: HS commodity code (e.g., "2602" for manganese ores)
         year: Year to query
         flow: Trade flow - "M" (imports) or "X" (exports)
-        top_n: Number of top countries to show
+        reporters: Comma-separated country codes (default: major economies)
+                   USA=842, China=156, Germany=276, Japan=392, S.Korea=410,
+                   Australia=36, Canada=124, Brazil=76, Italy=380, Netherlands=528
 
     Returns:
         Markdown-formatted summary table
     """
     client = get_client()
+    import asyncio
 
-    # Query all reporters for this commodity
-    records = await client.get_trade_data(
-        reporter="all",
-        partner="0",  # World
-        commodity=commodity,
-        flow=flow,
-        period=year,
-        max_records=500,
-    )
-
-    if not records:
-        return f"No {flow} data found for commodity {commodity} in {year}"
-
-    # Aggregate by reporter
+    # Query each reporter
     country_totals: dict[str, float] = {}
-    units = None
     commodity_name = None
 
-    for r in records:
-        if r.trade_value:
-            country = r.reporter
-            country_totals[country] = country_totals.get(country, 0) + r.trade_value
-            if commodity_name is None:
-                commodity_name = r.commodity
+    reporter_list = [r.strip() for r in reporters.split(",")]
 
-    # Sort and get top N
+    for reporter in reporter_list:
+        try:
+            await asyncio.sleep(0.3)  # Rate limit
+            records = await client.get_trade_data(
+                reporter=reporter,
+                partner="0",  # World
+                commodity=commodity,
+                flow=flow,
+                period=year,
+                max_records=10,
+            )
+            for r in records:
+                if r.trade_value:
+                    country = r.reporter_name
+                    country_totals[country] = country_totals.get(country, 0) + r.trade_value
+                    if commodity_name is None:
+                        commodity_name = r.commodity
+        except Exception:
+            continue
+
+    if not country_totals:
+        return f"No {flow} data found for commodity {commodity} in {year}"
+
+    # Sort by value
     sorted_countries = sorted(
         country_totals.items(), key=lambda x: x[1], reverse=True
-    )[:top_n]
+    )
 
     total = sum(v for _, v in sorted_countries)
     flow_name = "Imports" if flow == "M" else "Exports"
 
     # Format as markdown table
-    output = f"**{commodity_name or commodity} - Top {flow_name} ({year})**\n\n"
+    output = f"**{commodity_name or commodity} - {flow_name} ({year})**\n\n"
     output += "| Rank | Country | Value (USD) | Share |\n"
     output += "|------|---------|-------------|-------|\n"
 
@@ -347,7 +354,7 @@ async def get_commodity_trade_summary(
         share = (value / total * 100) if total > 0 else 0
         output += f"| {i} | {country} | ${value:,.0f} | {share:.1f}% |\n"
 
-    output += f"\n**Total (top {len(sorted_countries)}): ${total:,.0f}**\n"
+    output += f"\n**Total: ${total:,.0f}**\n"
 
     return output
 
@@ -362,13 +369,14 @@ async def get_country_trade_profile(
     Get a country's import/export profile for critical minerals.
 
     Args:
-        country: Country code (e.g., "842" for USA)
+        country: Country code (e.g., "842" for USA, "156" for China)
         year: Year to query
-        commodity_type: "critical_minerals" for CMM focus or "all" for general
+        commodity_type: "critical_minerals" for CMM focus
 
     Returns:
         Summary of country's trade in critical minerals
     """
+    import asyncio
     client = get_client()
     profile = {
         "country_code": country,
@@ -381,33 +389,28 @@ async def get_country_trade_profile(
         for mineral, hs_codes in CRITICAL_MINERAL_HS_CODES.items():
             commodity = ",".join(hs_codes)
 
-            # Get imports
-            imports = await client.get_trade_data(
-                reporter=country,
-                partner="0",
-                commodity=commodity,
-                flow="M",
-                period=year,
-                max_records=100,
-            )
-            import_total = sum(r.trade_value or 0 for r in imports)
+            try:
+                await asyncio.sleep(0.3)  # Rate limit
+                # Get imports and exports in one query
+                records = await client.get_trade_data(
+                    reporter=country,
+                    partner="0",
+                    commodity=commodity,
+                    flow="M,X",
+                    period=year,
+                    max_records=50,
+                )
 
-            # Get exports
-            exports = await client.get_trade_data(
-                reporter=country,
-                partner="0",
-                commodity=commodity,
-                flow="X",
-                period=year,
-                max_records=100,
-            )
-            export_total = sum(r.trade_value or 0 for r in exports)
+                import_total = sum(r.trade_value or 0 for r in records if r.flow_code == "M")
+                export_total = sum(r.trade_value or 0 for r in records if r.flow_code == "X")
 
-            mineral_name = MINERAL_NAMES.get(mineral, mineral)
-            if import_total > 0:
-                profile["imports"][mineral_name] = import_total
-            if export_total > 0:
-                profile["exports"][mineral_name] = export_total
+                mineral_name = MINERAL_NAMES.get(mineral, mineral)
+                if import_total > 0:
+                    profile["imports"][mineral_name] = import_total
+                if export_total > 0:
+                    profile["exports"][mineral_name] = export_total
+            except Exception:
+                continue
 
     profile["total_imports"] = sum(profile["imports"].values())
     profile["total_exports"] = sum(profile["exports"].values())
