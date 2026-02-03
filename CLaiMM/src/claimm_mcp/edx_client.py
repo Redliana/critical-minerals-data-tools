@@ -1,7 +1,8 @@
 """EDX API client for NETL's Energy Data eXchange."""
 
 import httpx
-from typing import Any
+from pathlib import Path
+from typing import Any, BinaryIO
 from pydantic import BaseModel
 
 from .config import get_settings
@@ -358,6 +359,400 @@ class EDXClient:
             )
 
         return submissions
+
+    async def create_submission(
+        self,
+        name: str,
+        title: str,
+        notes: str | None = None,
+        author: str | None = None,
+        tags: list[str] | None = None,
+        groups: list[str] | None = None,
+        private: bool = False,
+        extras: dict[str, str] | None = None,
+    ) -> Submission:
+        """
+        Create a new submission (dataset) in EDX.
+
+        Args:
+            name: Unique identifier for the dataset (lowercase, no spaces, use hyphens)
+            title: Human-readable title for the dataset
+            notes: Description of the dataset (supports Markdown)
+            author: Author name
+            tags: List of tags to apply to the dataset
+            groups: List of group names/IDs to add the dataset to (e.g., ["claimm"])
+            private: Whether the dataset should be private (default: False)
+            extras: Additional metadata as key-value pairs
+
+        Returns:
+            Created Submission object
+        """
+        data: dict[str, Any] = {
+            "name": name,
+            "title": title,
+            "private": private,
+        }
+
+        if notes:
+            data["notes"] = notes
+        if author:
+            data["author"] = author
+        if tags:
+            data["tags"] = [{"name": tag} for tag in tags]
+        if groups:
+            data["groups"] = [{"name": g} for g in groups]
+        if extras:
+            data["extras"] = [{"key": k, "value": v} for k, v in extras.items()]
+
+        result = await self._request("POST", "package_create", data=data)
+
+        resources = [
+            Resource(
+                id=r.get("id", ""),
+                name=r.get("name", ""),
+                description=r.get("description"),
+                format=r.get("format"),
+                size=r.get("size"),
+                url=r.get("url"),
+                created=r.get("created"),
+                last_modified=r.get("last_modified"),
+                package_id=result.get("id"),
+            )
+            for r in result.get("resources", [])
+        ]
+
+        tags_list = [t.get("name", "") for t in result.get("tags", [])]
+
+        return Submission(
+            id=result.get("id", ""),
+            name=result.get("name", ""),
+            title=result.get("title"),
+            notes=result.get("notes"),
+            author=result.get("author"),
+            organization=(result.get("organization") or {}).get("title"),
+            tags=tags_list,
+            resources=resources,
+            metadata_created=result.get("metadata_created"),
+            metadata_modified=result.get("metadata_modified"),
+        )
+
+    async def update_submission(
+        self,
+        submission_id: str,
+        title: str | None = None,
+        notes: str | None = None,
+        author: str | None = None,
+        tags: list[str] | None = None,
+        private: bool | None = None,
+    ) -> Submission:
+        """
+        Update an existing submission (dataset) in EDX.
+
+        Args:
+            submission_id: The submission/package ID or name
+            title: New title (optional)
+            notes: New description (optional)
+            author: New author name (optional)
+            tags: New list of tags (replaces existing tags)
+            private: Change privacy setting (optional)
+
+        Returns:
+            Updated Submission object
+        """
+        data: dict[str, Any] = {"id": submission_id}
+
+        if title is not None:
+            data["title"] = title
+        if notes is not None:
+            data["notes"] = notes
+        if author is not None:
+            data["author"] = author
+        if tags is not None:
+            data["tags"] = [{"name": tag} for tag in tags]
+        if private is not None:
+            data["private"] = private
+
+        result = await self._request("POST", "package_update", data=data)
+
+        resources = [
+            Resource(
+                id=r.get("id", ""),
+                name=r.get("name", ""),
+                description=r.get("description"),
+                format=r.get("format"),
+                size=r.get("size"),
+                url=r.get("url"),
+                created=r.get("created"),
+                last_modified=r.get("last_modified"),
+                package_id=result.get("id"),
+            )
+            for r in result.get("resources", [])
+        ]
+
+        tags_list = [t.get("name", "") for t in result.get("tags", [])]
+
+        return Submission(
+            id=result.get("id", ""),
+            name=result.get("name", ""),
+            title=result.get("title"),
+            notes=result.get("notes"),
+            author=result.get("author"),
+            organization=(result.get("organization") or {}).get("title"),
+            tags=tags_list,
+            resources=resources,
+            metadata_created=result.get("metadata_created"),
+            metadata_modified=result.get("metadata_modified"),
+        )
+
+    async def upload_resource(
+        self,
+        package_id: str,
+        file_path: str | Path,
+        name: str | None = None,
+        description: str | None = None,
+        format: str | None = None,
+    ) -> Resource:
+        """
+        Upload a file as a new resource to an existing submission.
+
+        Args:
+            package_id: The submission/package ID to add the resource to
+            file_path: Path to the file to upload
+            name: Resource name (defaults to filename)
+            description: Description of the resource
+            format: File format (e.g., 'CSV', 'JSON'). Auto-detected if not provided.
+
+        Returns:
+            Created Resource object
+        """
+        file_path = Path(file_path)
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        # Auto-detect format from extension if not provided
+        if format is None:
+            format = file_path.suffix.lstrip(".").upper() or None
+
+        # Use filename as name if not provided
+        if name is None:
+            name = file_path.name
+
+        url = f"{self.base_url}/resource_create"
+
+        # For file uploads, we need multipart form data
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            with open(file_path, "rb") as f:
+                files = {"upload": (file_path.name, f, "application/octet-stream")}
+                data = {
+                    "package_id": package_id,
+                    "name": name,
+                }
+                if description:
+                    data["description"] = description
+                if format:
+                    data["format"] = format
+
+                response = await client.post(
+                    url,
+                    headers={"X-CKAN-API-Key": self.settings.edx_api_key},
+                    data=data,
+                    files=files,
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                if not result.get("success", False):
+                    error = result.get("error", {})
+                    raise Exception(f"EDX API error: {error}")
+
+                r = result.get("result", {})
+
+        return Resource(
+            id=r.get("id", ""),
+            name=r.get("name", ""),
+            description=r.get("description"),
+            format=r.get("format"),
+            size=r.get("size"),
+            url=r.get("url"),
+            created=r.get("created"),
+            last_modified=r.get("last_modified"),
+            package_id=r.get("package_id"),
+        )
+
+    async def upload_resource_from_bytes(
+        self,
+        package_id: str,
+        file_content: bytes,
+        filename: str,
+        name: str | None = None,
+        description: str | None = None,
+        format: str | None = None,
+    ) -> Resource:
+        """
+        Upload bytes as a new resource to an existing submission.
+
+        Args:
+            package_id: The submission/package ID to add the resource to
+            file_content: The file content as bytes
+            filename: The filename to use for the upload
+            name: Resource name (defaults to filename)
+            description: Description of the resource
+            format: File format (e.g., 'CSV', 'JSON'). Auto-detected if not provided.
+
+        Returns:
+            Created Resource object
+        """
+        # Auto-detect format from extension if not provided
+        if format is None:
+            suffix = Path(filename).suffix.lstrip(".").upper()
+            format = suffix if suffix else None
+
+        # Use filename as name if not provided
+        if name is None:
+            name = filename
+
+        url = f"{self.base_url}/resource_create"
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            files = {"upload": (filename, file_content, "application/octet-stream")}
+            data = {
+                "package_id": package_id,
+                "name": name,
+            }
+            if description:
+                data["description"] = description
+            if format:
+                data["format"] = format
+
+            response = await client.post(
+                url,
+                headers={"X-CKAN-API-Key": self.settings.edx_api_key},
+                data=data,
+                files=files,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            if not result.get("success", False):
+                error = result.get("error", {})
+                raise Exception(f"EDX API error: {error}")
+
+            r = result.get("result", {})
+
+        return Resource(
+            id=r.get("id", ""),
+            name=r.get("name", ""),
+            description=r.get("description"),
+            format=r.get("format"),
+            size=r.get("size"),
+            url=r.get("url"),
+            created=r.get("created"),
+            last_modified=r.get("last_modified"),
+            package_id=r.get("package_id"),
+        )
+
+    async def update_resource(
+        self,
+        resource_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        format: str | None = None,
+        file_path: str | Path | None = None,
+    ) -> Resource:
+        """
+        Update an existing resource's metadata or replace its file.
+
+        Args:
+            resource_id: The resource ID to update
+            name: New resource name (optional)
+            description: New description (optional)
+            format: New format (optional)
+            file_path: Path to new file to replace existing (optional)
+
+        Returns:
+            Updated Resource object
+        """
+        url = f"{self.base_url}/resource_update"
+
+        data: dict[str, Any] = {"id": resource_id}
+        if name is not None:
+            data["name"] = name
+        if description is not None:
+            data["description"] = description
+        if format is not None:
+            data["format"] = format
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            if file_path:
+                file_path = Path(file_path)
+                if not file_path.exists():
+                    raise FileNotFoundError(f"File not found: {file_path}")
+
+                with open(file_path, "rb") as f:
+                    files = {"upload": (file_path.name, f, "application/octet-stream")}
+                    response = await client.post(
+                        url,
+                        headers={"X-CKAN-API-Key": self.settings.edx_api_key},
+                        data=data,
+                        files=files,
+                    )
+            else:
+                response = await client.post(
+                    url,
+                    headers={
+                        "X-CKAN-API-Key": self.settings.edx_api_key,
+                        "Content-Type": "application/json",
+                    },
+                    json=data,
+                )
+
+            response.raise_for_status()
+            result = response.json()
+
+            if not result.get("success", False):
+                error = result.get("error", {})
+                raise Exception(f"EDX API error: {error}")
+
+            r = result.get("result", {})
+
+        return Resource(
+            id=r.get("id", ""),
+            name=r.get("name", ""),
+            description=r.get("description"),
+            format=r.get("format"),
+            size=r.get("size"),
+            url=r.get("url"),
+            created=r.get("created"),
+            last_modified=r.get("last_modified"),
+            package_id=r.get("package_id"),
+        )
+
+    async def delete_resource(self, resource_id: str) -> bool:
+        """
+        Delete a resource from EDX.
+
+        Args:
+            resource_id: The resource ID to delete
+
+        Returns:
+            True if deletion was successful
+        """
+        await self._request("POST", "resource_delete", data={"id": resource_id})
+        return True
+
+    async def delete_submission(self, submission_id: str) -> bool:
+        """
+        Delete a submission (dataset) from EDX.
+
+        Args:
+            submission_id: The submission/package ID or name to delete
+
+        Returns:
+            True if deletion was successful
+        """
+        await self._request("POST", "package_delete", data={"id": submission_id})
+        return True
 
     def get_download_url(self, resource_id: str) -> str:
         """

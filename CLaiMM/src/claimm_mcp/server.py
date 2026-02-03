@@ -472,6 +472,280 @@ async def get_download_url(resource_id: str) -> str:
     return edx.get_download_url(resource_id)
 
 
+# ============================================================================
+# Upload / Write Tools
+# ============================================================================
+
+
+@mcp.tool()
+async def create_dataset(
+    name: str,
+    title: str,
+    description: str | None = None,
+    author: str | None = None,
+    tags: str | None = None,
+    add_to_claimm: bool = True,
+    private: bool = False,
+) -> str:
+    """
+    Create a new dataset (submission) in EDX. After creating a dataset,
+    use upload_file to add resources/files to it.
+
+    Args:
+        name: Unique identifier (lowercase, no spaces, use hyphens, e.g., "lithium-production-2024")
+        title: Human-readable title for the dataset
+        description: Description of the dataset (supports Markdown)
+        author: Author name
+        tags: Comma-separated list of tags (e.g., "lithium,critical-minerals,production")
+        add_to_claimm: Add to the CLAIMM group (default: True)
+        private: Whether the dataset should be private (default: False)
+
+    Returns:
+        Confirmation with dataset ID and details
+    """
+    edx = get_edx_client()
+
+    # Parse tags
+    tag_list = None
+    if tags:
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+    # Add to CLAIMM group if requested
+    groups = None
+    if add_to_claimm:
+        groups = [edx.settings.claimm_group]
+
+    submission = await edx.create_submission(
+        name=name,
+        title=title,
+        notes=description,
+        author=author,
+        tags=tag_list,
+        groups=groups,
+        private=private,
+    )
+
+    return f"""**Dataset Created Successfully**
+
+- **Title:** {submission.title}
+- **Name:** `{submission.name}`
+- **ID:** `{submission.id}`
+- **Author:** {submission.author or 'Not specified'}
+- **Tags:** {', '.join(submission.tags) if submission.tags else 'None'}
+- **Private:** {'Yes' if private else 'No'}
+- **CLAIMM Group:** {'Yes' if add_to_claimm else 'No'}
+
+**Next Steps:**
+Use `upload_file` with dataset_id=`{submission.id}` to add files to this dataset.
+"""
+
+
+@mcp.tool()
+async def update_dataset(
+    dataset_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    author: str | None = None,
+    tags: str | None = None,
+    private: bool | None = None,
+) -> str:
+    """
+    Update an existing dataset's metadata.
+
+    Args:
+        dataset_id: The dataset ID or name to update
+        title: New title (optional)
+        description: New description (optional)
+        author: New author name (optional)
+        tags: New comma-separated tags (replaces existing tags, optional)
+        private: Change privacy setting (optional)
+
+    Returns:
+        Confirmation with updated dataset details
+    """
+    edx = get_edx_client()
+
+    # Parse tags if provided
+    tag_list = None
+    if tags is not None:
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+    submission = await edx.update_submission(
+        submission_id=dataset_id,
+        title=title,
+        notes=description,
+        author=author,
+        tags=tag_list,
+        private=private,
+    )
+
+    return f"""**Dataset Updated Successfully**
+
+- **Title:** {submission.title}
+- **Name:** `{submission.name}`
+- **ID:** `{submission.id}`
+- **Author:** {submission.author or 'Not specified'}
+- **Tags:** {', '.join(submission.tags) if submission.tags else 'None'}
+- **Resources:** {len(submission.resources)} files
+"""
+
+
+@mcp.tool()
+async def upload_file(
+    dataset_id: str,
+    file_path: str,
+    name: str | None = None,
+    description: str | None = None,
+    format: str | None = None,
+) -> str:
+    """
+    Upload a file to an existing dataset in EDX.
+
+    Args:
+        dataset_id: The dataset ID to add the file to
+        file_path: Absolute path to the file to upload
+        name: Resource name (defaults to filename)
+        description: Description of the file
+        format: File format (e.g., 'CSV', 'JSON'). Auto-detected from extension if not provided.
+
+    Returns:
+        Confirmation with resource ID and download URL
+    """
+    edx = get_edx_client()
+
+    resource = await edx.upload_resource(
+        package_id=dataset_id,
+        file_path=file_path,
+        name=name,
+        description=description,
+        format=format,
+    )
+
+    download_url = edx.get_download_url(resource.id)
+
+    return f"""**File Uploaded Successfully**
+
+- **Name:** {resource.name}
+- **Resource ID:** `{resource.id}`
+- **Format:** {resource.format or 'Unknown'}
+- **Size:** {resource.size:,} bytes if resource.size else 'Unknown'
+- **Dataset ID:** `{resource.package_id}`
+
+**Download URL:**
+{download_url}
+"""
+
+
+@mcp.tool()
+async def update_file(
+    resource_id: str,
+    name: str | None = None,
+    description: str | None = None,
+    format: str | None = None,
+    file_path: str | None = None,
+) -> str:
+    """
+    Update an existing file's metadata or replace the file content.
+
+    Args:
+        resource_id: The resource ID to update
+        name: New resource name (optional)
+        description: New description (optional)
+        format: New format (optional)
+        file_path: Path to new file to replace existing content (optional)
+
+    Returns:
+        Confirmation with updated resource details
+    """
+    edx = get_edx_client()
+
+    resource = await edx.update_resource(
+        resource_id=resource_id,
+        name=name,
+        description=description,
+        format=format,
+        file_path=file_path,
+    )
+
+    download_url = edx.get_download_url(resource.id)
+
+    return f"""**File Updated Successfully**
+
+- **Name:** {resource.name}
+- **Resource ID:** `{resource.id}`
+- **Format:** {resource.format or 'Unknown'}
+- **Size:** {resource.size:,} bytes if resource.size else 'Unknown'
+
+**Download URL:**
+{download_url}
+"""
+
+
+@mcp.tool()
+async def delete_file(resource_id: str) -> str:
+    """
+    Delete a file (resource) from EDX.
+
+    Args:
+        resource_id: The resource ID to delete
+
+    Returns:
+        Confirmation of deletion
+    """
+    edx = get_edx_client()
+
+    # Get resource info before deletion for confirmation
+    try:
+        resource = await edx.get_resource(resource_id)
+        resource_name = resource.name
+    except Exception:
+        resource_name = resource_id
+
+    await edx.delete_resource(resource_id)
+
+    return f"""**File Deleted Successfully**
+
+- **Name:** {resource_name}
+- **Resource ID:** `{resource_id}`
+
+The file has been permanently removed from EDX.
+"""
+
+
+@mcp.tool()
+async def delete_dataset(dataset_id: str) -> str:
+    """
+    Delete a dataset (submission) and all its files from EDX.
+
+    Args:
+        dataset_id: The dataset ID or name to delete
+
+    Returns:
+        Confirmation of deletion
+    """
+    edx = get_edx_client()
+
+    # Get dataset info before deletion for confirmation
+    try:
+        submission = await edx.get_submission(dataset_id)
+        dataset_title = submission.title or submission.name
+        resource_count = len(submission.resources)
+    except Exception:
+        dataset_title = dataset_id
+        resource_count = 0
+
+    await edx.delete_submission(dataset_id)
+
+    return f"""**Dataset Deleted Successfully**
+
+- **Title:** {dataset_title}
+- **Dataset ID:** `{dataset_id}`
+- **Files Removed:** {resource_count}
+
+The dataset and all associated files have been permanently removed from EDX.
+"""
+
+
 def main():
     """Run the CLAIMM MCP server."""
     mcp.run()
