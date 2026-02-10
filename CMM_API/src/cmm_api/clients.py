@@ -3,7 +3,6 @@
 import httpx
 from typing import Any
 from pydantic import BaseModel
-from urllib.parse import quote
 
 from .config import get_settings
 

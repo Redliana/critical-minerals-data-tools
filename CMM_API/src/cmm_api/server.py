@@ -3,7 +3,6 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Any
 
 from .clients import BGSClient, CLAIMMClient, UnifiedClient
 
