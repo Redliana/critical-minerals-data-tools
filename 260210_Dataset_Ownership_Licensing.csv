@@ -1,0 +1,58 @@
+Dataset Name,Owner,Use Restrictions / Licensing
+Alaska Geochemical Database (AGDB),USGS,Public (US Gov)
+Argonne BatPaC (Battery Performance and Cost) Model Data,Argonne National Laboratory,Open-source
+Atmospheric Mass Loading Displacements,International Mass Loading Service IMLS; GEOS FPIT from NASA GMAO,Open-source with citation
+Australian Mines Atlas,Geoscience Australia,Public (CC variants)
+British Geological Survey (BGS) World Mineral Statistics,British Geological Survey,Commercial (subscription); some open data
+CMI CoCuNi Model Data,Ames / CMI,Open-source
+CMI DREEM Model Data,Ames / CMI,Open-source
+CMI LISA Model Data,Ames / CMI,Open-source
+CMMI CMiO (Critical Minerals in Ores),"USGS + partners (GA, GSC)",Public (mixed by partner datasets)
+Columbia University Critical Materials Monitor,Columbia University Center on Global Energy Policy,Open-source
+DARPA OPEN - Scruff Datasets,DARPA / Charles River Analytics,Prototype / Open-source planned
+Dataset to support prospectivity modelling for sediment-hosted Zn-Pb mineral systems,Natural Resources Canada,Open-source
+DOE Critical Materials Institute (CMI) Open-Source Models,Ames National Laboratory / DOE CMI,Open-source (GitHub)
+Earth Relief (Topography),Scripps Institution of Oceanography (IGPP); Generic Mapping Tools (GMT),Open-source
+EIA Coal Data / Annual Coal Report,U.S. Energy Information Administration (EIA),Public (US Gov)
+EMIT hyperspectral imagery,NASA,Open-source with citation
+EverBatt Model Dataset,Argonne / ReCell,Open-source
+GEM - Global Coal Plant Tracker,Global Energy Monitor (GEM),Public (with attribution)
+GEM - Global Iron Ore Mines Tracker,Global Energy Monitor (GEM),Public (with attribution)
+Geoscience Australia mineral & processing datasets,Geoscience Australia,Public (Creative Commons variants)
+Global Earthquake Catalog,U.S. Geological Survey (USGS),Open-source
+Global Mining Data Platform,Various academic/research institutions,Open-source
+Gravity (Bouguer Anomaly),CNES / GRGS (Centre National d'Etudes Spatiales - Groupe de Recherche de Geodesie Spatiale); Global Tectonics compilation,Open-source
+GREET 2 Materials Module,Argonne National Laboratory,Open-source
+GREET Model Database,Argonne,Open-source
+ICMM Global Mining Dataset,International Council on Mining and Metals (ICMM),"Mixed (public subset of 8,508 records via Zenodo; full dataset of 15,188 records includes proprietary data)"
+ICMM Global Mining Dataset (public),International Council on Mining & Metals (ICMM),Open (Zenodo terms)
+IEA Critical Minerals Data Explorer,International Energy Agency (IEA),Open-source
+IRENA Geopolitics of Energy Transition Critical Materials Database,International Renewable Energy Agency (IRENA),Open-source
+MIDAS GPS Velocities,Nevada Geodetic Laboratory (NGL) / U.S. Geological Survey (USGS),"Public (NGL / USGS data portal - no explicit license; U.S. Public Domain policy applies). Associated paper is Open Access under CC BY-NC-ND 4.0 (Blewitt et al., 2016)."
+MinCan (Canada Mines & Facilities),Natural Resources Canada (NRCan),Public (Gov. of Canada Open Data)
+MinDat Global Mineral Database,Mindat.org / Hudson Institute of Mineralogy,Open-source (OpenMindat initiative)
+MODIS Land Cover Type Product Collection 6,"NASA Earth Science Division, Land Processes Distributed Active Archive Center (LP DAAC); MODIS Team (Boston University, USGS EROS)",Open-source
+MSHA Mine Data,U.S. Mine Safety and Health Administration,Public (US Gov)
+NASA GLDAS Noah Land Surface Model L4 3-Hourly 0.25° (GLDAS-2.1),"NASA Goddard Space Flight Center (GSFC), Global Modeling and Assimilation Office (GMAO)",Open-source with citation
+NETL EDX ClaiMM,NETL,Open
+NETL National Critical Minerals Data Dashboard (ClaiMM),DOE NETL,Public (US Gov)
+NEWTS Economic Data Dashboard,DOE (NEWTS),Public (US Gov)
+NRCan mineral inventories & facilities,Natural Resources Canada,Public (Gov. of Canada open data terms)
+NREL LIBRA Dataset,NREL,Open-source
+NREL MFI Database,NREL,Open-source
+OECD Critical Minerals Indicators,OECD,Public (OECD terms)
+OECD Mineral and Energy Resource Accounts,OECD,Open-source
+Open Database on Global Coal & Metal Mine Production,Academic consortium (open),Open (per release)
+Preliminary 3D Chronostratigraphic Model of Australia v1.0,Geoscience Australia (GA) - Resourcing Australia's Prosperity initiative (RAPi) and Exploring for the Future program,Creative Commons Attribution 4.0 International (CC BY 4.0)
+RMIS / Materials System Analysis (MSA) indicators,European Commission JRC,Public; attribution required
+SAFE,Los Alamos national Laboratory,open
+The Global Heat Flow Database,"GFZ German Research Centre for Geosciences (Potsdam, Germany) and International Heat Flow Commission (IHFC, IASPEI)",Creative Commons Attribution 4.0 International (CC BY 4.0)
+UN Comtrade Critical Minerals Trade Database,United Nations Statistics Division,Open-source
+UNEP Global Material Flows Database (GMFD),UNEP International Resource Panel / fineprint,Public/open with attribution
+USGS Mineral Commodity Summaries (MCS),USGS,Open-source
+USGS Mineral Resources Data System (MRDS),USGS,Open-source
+USGS Mineral Yearbook,USGS National Minerals Information Center,Open-source
+Volcanoes of the World,"Smithsonian Institution, Global Volcanism Program",Open-source
+World Bank Climate-Smart Mining Database,World Bank Group,Open-source with citation
+World Bank Climate-Smart Mining Initiative (CSMI) datasets,World Bank,Public (WB terms)
+World Geologic Map,U.S. Geological Survey (USGS); Geological Survey of Canada (GSC); Macrostrat Database (University of Wisconsin-Madison),Public (USGS and GSC datasets in U.S./Canadian public domain; Macrostrat API open access with attribution). Use with citation of all sources.
