@@ -4,6 +4,7 @@ Uses simple query approach since tool calling isn't reliable with all models.
 """
 
 import json
+
 import httpx
 
 API_BASE = "http://127.0.0.1:8000"

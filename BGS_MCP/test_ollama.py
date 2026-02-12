@@ -2,6 +2,7 @@
 """Test BGS REST API with Ollama (local LLM)."""
 
 import json
+
 import httpx
 
 # Configuration

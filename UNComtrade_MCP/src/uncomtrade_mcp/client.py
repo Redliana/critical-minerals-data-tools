@@ -6,7 +6,7 @@ from typing import Any, Optional
 import httpx
 from dotenv import load_dotenv
 
-from .models import TradeRecord, CRITICAL_MINERAL_HS_CODES
+from .models import CRITICAL_MINERAL_HS_CODES, TradeRecord
 
 # Load environment variables
 load_dotenv()

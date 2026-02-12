@@ -4,13 +4,13 @@ from mcp.server.fastmcp import FastMCP
 
 try:
     from .edx_client import EDXClient
-    from .llm_client import LLMClient
     from .header_detector import HeaderDetector
+    from .llm_client import LLMClient
 except ImportError:
     # Handle direct execution (e.g., mcp dev)
     from claimm_mcp.edx_client import EDXClient
-    from claimm_mcp.llm_client import LLMClient
     from claimm_mcp.header_detector import HeaderDetector
+    from claimm_mcp.llm_client import LLMClient
 
 # Initialize the MCP server
 mcp = FastMCP(

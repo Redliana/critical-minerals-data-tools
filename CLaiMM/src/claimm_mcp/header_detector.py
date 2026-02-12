@@ -8,7 +8,6 @@ Uses HTTP Range requests to fetch only the first portion of the file.
 import asyncio
 import csv
 import io
-import zipfile
 from typing import Any
 
 import httpx

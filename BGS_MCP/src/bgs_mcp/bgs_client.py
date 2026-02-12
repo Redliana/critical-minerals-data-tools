@@ -1,8 +1,8 @@
 """BGS World Mineral Statistics API client."""
 
-import httpx
-from urllib.parse import quote
 from typing import Any
+
+import httpx
 from pydantic import BaseModel
 
 

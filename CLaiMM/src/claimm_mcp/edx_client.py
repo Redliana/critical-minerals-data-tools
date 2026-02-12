@@ -1,8 +1,9 @@
 """EDX API client for NETL's Energy Data eXchange."""
 
-import httpx
 from pathlib import Path
-from typing import Any, BinaryIO
+from typing import Any
+
+import httpx
 from pydantic import BaseModel
 
 from .config import get_settings

@@ -1,7 +1,8 @@
 """Pydantic models for UN Comtrade API data structures."""
 
-from pydantic import BaseModel, Field
 from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class TradeRecord(BaseModel):

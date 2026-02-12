@@ -1,11 +1,11 @@
 """Data clients for CLAIMM (EDX) and BGS APIs."""
 
-import httpx
 from typing import Any
+
+import httpx
 from pydantic import BaseModel
 
 from .config import get_settings
-
 
 # ============================================================================
 # Shared Models

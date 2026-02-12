@@ -72,7 +72,7 @@ class OSTIClient:
                     f"Document catalog not found at {catalog_path}. "
                     "Set OSTI_DATA_PATH environment variable or provide data_path."
                 )
-            with open(catalog_path, "r") as f:
+            with open(catalog_path) as f:
                 data = json.load(f)
             self._catalog = pd.DataFrame(data)
         return self._catalog

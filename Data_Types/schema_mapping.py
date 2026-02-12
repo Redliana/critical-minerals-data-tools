@@ -1,10 +1,8 @@
-import csv
 import json
 from datetime import datetime
 
-import yaml
 import pandas as pd
-
+import yaml
 
 # ----------------------------
 # Utility functions
@@ -122,7 +120,7 @@ def set_nested(dct, path, value, append=False):
 
 
 def load_mapping(mapping_path):
-    with open(mapping_path, "r") as f:
+    with open(mapping_path) as f:
         mapping = yaml.safe_load(f)
     return mapping
 

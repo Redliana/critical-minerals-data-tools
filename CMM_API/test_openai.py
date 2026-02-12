@@ -1,7 +1,8 @@
 """Test CMM API with OpenAI function calling."""
 
-import os
 import json
+import os
+
 import httpx
 from openai import OpenAI
 

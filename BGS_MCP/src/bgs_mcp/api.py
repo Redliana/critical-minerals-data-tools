@@ -1,12 +1,13 @@
 """REST API for BGS World Mineral Statistics - Works with any LLM."""
 
-from fastapi import FastAPI, Query, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 from typing import Any
-import uvicorn
 
-from .bgs_client import BGSClient, MineralRecord
+import uvicorn
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from .bgs_client import BGSClient
 
 # Initialize FastAPI app
 app = FastAPI(
