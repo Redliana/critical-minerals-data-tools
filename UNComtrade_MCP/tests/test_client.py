@@ -1,5 +1,7 @@
 """Basic tests for UN Comtrade client."""
 
+from __future__ import annotations
+
 import asyncio
 import os
 

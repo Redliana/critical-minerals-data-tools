@@ -4,6 +4,8 @@ Provides access to DOE technical reports and publications on critical minerals
 and materials science.
 """
 
+from __future__ import annotations
+
 from mcp.server.fastmcp import FastMCP
 
 from .client import OSTIClient

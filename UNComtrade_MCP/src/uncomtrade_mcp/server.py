@@ -1,5 +1,7 @@
 """MCP server for UN Comtrade international trade data."""
 
+from __future__ import annotations
+
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP

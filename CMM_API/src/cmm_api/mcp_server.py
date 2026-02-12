@@ -1,5 +1,7 @@
 """MCP Server for Unified Critical Minerals and Materials API."""
 
+from __future__ import annotations
+
 from mcp.server.fastmcp import FastMCP
 
 from .clients import BGSClient, CLAIMMClient, UnifiedClient

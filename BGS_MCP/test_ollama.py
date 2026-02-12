@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Test BGS REST API with Ollama (local LLM)."""
 
+from __future__ import annotations
+
 import json
 
 import httpx

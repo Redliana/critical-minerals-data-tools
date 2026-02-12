@@ -1,5 +1,7 @@
 """EDX API client for NETL's Energy Data eXchange."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 

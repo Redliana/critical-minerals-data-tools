@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Download BGS World Mineral Statistics for critical minerals."""
 
+from __future__ import annotations
+
 import csv
 import json
 import time

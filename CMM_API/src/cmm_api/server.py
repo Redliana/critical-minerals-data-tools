@@ -7,6 +7,8 @@
     These provide fuller coverage (28 vs 7 endpoints) and direct LLM integration.
 """
 
+from __future__ import annotations
+
 import warnings
 
 warnings.warn(

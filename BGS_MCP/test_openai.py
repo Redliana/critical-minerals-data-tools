@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Test BGS REST API with OpenAI function calling."""
 
+from __future__ import annotations
+
 import json
 import os
 

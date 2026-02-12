@@ -1,5 +1,7 @@
 """BGS World Mineral Statistics API client."""
 
+from __future__ import annotations
+
 from typing import Any
 
 import httpx

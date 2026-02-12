@@ -1,5 +1,7 @@
 """REST API for BGS World Mineral Statistics - Works with any LLM."""
 
+from __future__ import annotations
+
 from typing import Any
 
 import uvicorn

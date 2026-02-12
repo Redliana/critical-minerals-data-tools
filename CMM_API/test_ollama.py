@@ -3,6 +3,8 @@
 Uses simple query approach since tool calling isn't reliable with all models.
 """
 
+from __future__ import annotations
+
 import json
 
 import httpx

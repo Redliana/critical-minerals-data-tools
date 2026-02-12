@@ -5,6 +5,8 @@ Detects column headers from CSV and Excel files without downloading the full fil
 Uses HTTP Range requests to fetch only the first portion of the file.
 """
 
+from __future__ import annotations
+
 import asyncio
 import csv
 import io

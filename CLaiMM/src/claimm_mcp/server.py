@@ -1,5 +1,7 @@
 """CLAIMM MCP Server - Search NETL EDX CLAIMM data with LLM support."""
 
+from __future__ import annotations
+
 from mcp.server.fastmcp import FastMCP
 
 try:

@@ -4,6 +4,8 @@ This server provides direct access to CLAIMM data without any LLM dependencies.
 Suitable for collaborators who want to use their own LLM or no LLM at all.
 """
 
+from __future__ import annotations
+
 from mcp.server.fastmcp import FastMCP
 
 from .edx_client import EDXClient

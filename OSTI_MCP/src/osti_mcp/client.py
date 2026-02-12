@@ -1,5 +1,7 @@
 """OSTI data client for accessing document catalog and metadata."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
