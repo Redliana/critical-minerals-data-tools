@@ -42,8 +42,18 @@ select = [
 ]
 ignore = [
     "E402",    # module import not at top of file (intentional in some modules)
+    "E501",    # line too long (strings; ruff format handles code lines)
     "PLC0415", # import not at top level (intentional in test/main functions)
     "ERA001",  # commented-out code
+    "PTH123",  # builtin-open (prefer pathlib.Path.open eventually)
+    "RUF012",  # mutable-class-default (ClassVar annotation)
+    "B904",    # raise-without-from-inside-except
+    "B007",    # unused-loop-control-variable
+    "PLW0603", # global-statement
+    "ARG001",  # unused-function-argument
+    "ARG002",  # unused-method-argument
+    "PLR0911", # too-many-return-statements
+    "SIM117",  # multiple-with-statements
 ]
 
 [tool.ruff.lint.per-file-ignores]

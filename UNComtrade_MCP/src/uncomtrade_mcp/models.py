@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -12,31 +10,27 @@ class TradeRecord(BaseModel):
 
     period: str = Field(description="Year of the trade record")
     reporter_code: int = Field(alias="reporterCode", description="Reporter country code")
-    reporter: Optional[str] = Field(
+    reporter: str | None = Field(
         alias="reporterDesc", default=None, description="Reporter country name"
     )
     partner_code: int = Field(alias="partnerCode", description="Partner country code")
-    partner: Optional[str] = Field(
+    partner: str | None = Field(
         alias="partnerDesc", default=None, description="Partner country name"
     )
     flow_code: str = Field(alias="flowCode", description="Trade flow code (M/X)")
-    flow: Optional[str] = Field(
-        alias="flowDesc", default=None, description="Trade flow description"
-    )
+    flow: str | None = Field(alias="flowDesc", default=None, description="Trade flow description")
     commodity_code: str = Field(alias="cmdCode", description="HS commodity code")
-    commodity: Optional[str] = Field(
+    commodity: str | None = Field(
         alias="cmdDesc", default=None, description="Commodity description"
     )
-    trade_value: Optional[float] = Field(
+    trade_value: float | None = Field(
         alias="primaryValue", default=None, description="Trade value in USD"
     )
-    net_weight: Optional[float] = Field(
-        alias="netWgt", default=None, description="Net weight in kg"
-    )
-    quantity: Optional[float] = Field(
+    net_weight: float | None = Field(alias="netWgt", default=None, description="Net weight in kg")
+    quantity: float | None = Field(
         alias="qty", default=None, description="Quantity in reported units"
     )
-    quantity_unit: Optional[str] = Field(
+    quantity_unit: str | None = Field(
         alias="qtyUnitAbbr", default=None, description="Quantity unit abbreviation"
     )
 
@@ -61,7 +55,7 @@ class CountryReference(BaseModel):
 
     id: int = Field(description="Country code")
     text: str = Field(description="Country name")
-    iso3: Optional[str] = Field(default=None, description="ISO 3-letter code")
+    iso3: str | None = Field(default=None, description="ISO 3-letter code")
 
 
 class CommodityReference(BaseModel):
@@ -69,7 +63,7 @@ class CommodityReference(BaseModel):
 
     id: str = Field(description="HS code")
     text: str = Field(description="Commodity description")
-    parent: Optional[str] = Field(default=None, description="Parent HS code")
+    parent: str | None = Field(default=None, description="Parent HS code")
 
 
 # Critical Minerals HS Code Mapping (CMM Focus)

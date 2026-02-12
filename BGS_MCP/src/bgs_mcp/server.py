@@ -391,7 +391,7 @@ async def compare_countries(
     # Build header
     header = "| Year |"
     separator = "|------|"
-    for country in comparison.keys():
+    for country in comparison:
         header += f" {country[:15]} |"
         separator += "----------|"
 

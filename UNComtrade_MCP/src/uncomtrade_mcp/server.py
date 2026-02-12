@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import httpx
 from mcp.server.fastmcp import FastMCP
 
@@ -79,7 +77,7 @@ async def list_critical_minerals() -> dict:
 
 
 @mcp.tool()
-async def list_reporters(search: Optional[str] = None, limit: int = 50) -> dict:
+async def list_reporters(search: str | None = None, limit: int = 50) -> dict:
     """
     List available reporter countries.
 
@@ -106,7 +104,7 @@ async def list_reporters(search: Optional[str] = None, limit: int = 50) -> dict:
 
 
 @mcp.tool()
-async def list_partners(search: Optional[str] = None, limit: int = 50) -> dict:
+async def list_partners(search: str | None = None, limit: int = 50) -> dict:
     """
     List available partner countries/areas.
 
@@ -134,7 +132,7 @@ async def list_partners(search: Optional[str] = None, limit: int = 50) -> dict:
 
 @mcp.tool()
 async def list_commodities(
-    search: Optional[str] = None,
+    search: str | None = None,
     hs_level: int = 4,
     limit: int = 50,
 ) -> dict:
