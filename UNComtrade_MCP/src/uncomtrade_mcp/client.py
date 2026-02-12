@@ -1,12 +1,14 @@
 """Async HTTP client for UN Comtrade API."""
 
+from __future__ import annotations
+
 import os
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
 
-from .models import TradeRecord, CRITICAL_MINERAL_HS_CODES
+from .models import CRITICAL_MINERAL_HS_CODES, TradeRecord
 
 # Load environment variables
 load_dotenv()
@@ -19,7 +21,7 @@ class ComtradeClient:
     DATA_URL = f"{BASE_URL}/data/v1/get/C/A/HS"  # Commodities, Annual, HS classification
     REFS_URL = f"{BASE_URL}/files/v1/app/reference"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """Initialize the client with an API key."""
         self.api_key = api_key or os.getenv("UNCOMTRADE_API_KEY")
         self.timeout = 60.0
@@ -35,9 +37,7 @@ class ComtradeClient:
             headers["Ocp-Apim-Subscription-Key"] = self.api_key
         return headers
 
-    async def _request(
-        self, url: str, params: Optional[dict[str, Any]] = None
-    ) -> dict[str, Any]:
+    async def _request(self, url: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Make an async request to the API."""
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.get(url, params=params, headers=self._get_headers())
@@ -84,7 +84,7 @@ class ComtradeClient:
                 "api_key_configured": self.is_available(),
                 "message": "Request timed out",
             }
-        except Exception as e:
+        except (httpx.HTTPError, OSError) as e:
             return {
                 "status": "error",
                 "api_key_configured": self.is_available(),
@@ -130,7 +130,7 @@ class ComtradeClient:
             try:
                 record = TradeRecord.model_validate(item)
                 records.append(record)
-            except Exception:
+            except (ValueError, KeyError):
                 # Skip malformed records
                 continue
 
@@ -164,9 +164,7 @@ class ComtradeClient:
 
         if not hs_codes:
             available = ", ".join(CRITICAL_MINERAL_HS_CODES.keys())
-            raise ValueError(
-                f"Unknown mineral: {mineral}. Available: {available}"
-            )
+            raise ValueError(f"Unknown mineral: {mineral}. Available: {available}")
 
         # Query with comma-separated HS codes
         commodity = ",".join(hs_codes)

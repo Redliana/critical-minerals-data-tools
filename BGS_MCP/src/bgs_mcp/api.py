@@ -1,12 +1,15 @@
 """REST API for BGS World Mineral Statistics - Works with any LLM."""
 
-from fastapi import FastAPI, Query, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import Any
-import uvicorn
+from __future__ import annotations
 
-from .bgs_client import BGSClient, MineralRecord
+from typing import Any
+
+import uvicorn
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from .bgs_client import BGSClient
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -47,6 +50,7 @@ app.add_middleware(
 # Response models
 class CommodityList(BaseModel):
     """List of available commodities."""
+
     total: int
     commodities: list[str]
     categories: dict[str, list[str]] | None = None
@@ -54,6 +58,7 @@ class CommodityList(BaseModel):
 
 class CountryInfo(BaseModel):
     """Country information."""
+
     name: str
     iso2: str | None
     iso3: str | None
@@ -61,12 +66,14 @@ class CountryInfo(BaseModel):
 
 class CountryList(BaseModel):
     """List of countries."""
+
     total: int
     countries: list[CountryInfo]
 
 
 class ProductionRecord(BaseModel):
     """Single production record."""
+
     commodity: str
     country: str
     country_iso3: str | None
@@ -77,6 +84,7 @@ class ProductionRecord(BaseModel):
 
 class ProductionResponse(BaseModel):
     """Production search response."""
+
     query: dict[str, Any]
     total: int
     records: list[ProductionRecord]
@@ -84,6 +92,7 @@ class ProductionResponse(BaseModel):
 
 class RankedCountry(BaseModel):
     """Country ranking entry."""
+
     rank: int
     country: str
     country_iso3: str | None
@@ -93,6 +102,7 @@ class RankedCountry(BaseModel):
 
 class RankingResponse(BaseModel):
     """Commodity ranking response."""
+
     commodity: str
     year: int
     statistic_type: str
@@ -103,6 +113,7 @@ class RankingResponse(BaseModel):
 
 class TimeSeriesPoint(BaseModel):
     """Single time series data point."""
+
     year: int
     quantity: float
     yoy_change_percent: float | None = None
@@ -110,6 +121,7 @@ class TimeSeriesPoint(BaseModel):
 
 class TimeSeriesResponse(BaseModel):
     """Time series response."""
+
     commodity: str
     country: str | None
     statistic_type: str
@@ -119,6 +131,7 @@ class TimeSeriesResponse(BaseModel):
 
 class ComparisonResponse(BaseModel):
     """Country comparison response."""
+
     commodity: str
     statistic_type: str
     units: str | None
@@ -127,6 +140,7 @@ class ComparisonResponse(BaseModel):
 
 class CountryProfile(BaseModel):
     """Country production profile."""
+
     country: str
     year: int
     statistic_type: str
@@ -135,6 +149,7 @@ class CountryProfile(BaseModel):
 
 class OpenAIFunction(BaseModel):
     """OpenAI function definition."""
+
     name: str
     description: str
     parameters: dict[str, Any]
@@ -209,11 +224,36 @@ async def list_commodities(
                 categories["battery"].append(c)
             elif "rare earth" in cl:
                 categories["rare_earth"].append(c)
-            elif any(x in cl for x in ["platinum", "vanadium", "tungsten", "chromium", "tantalum", "niobium", "titanium"]):
+            elif any(
+                x in cl
+                for x in [
+                    "platinum",
+                    "vanadium",
+                    "tungsten",
+                    "chromium",
+                    "tantalum",
+                    "niobium",
+                    "titanium",
+                ]
+            ):
                 categories["strategic"].append(c)
-            elif any(x in cl for x in ["gallium", "germanium", "indium", "beryl", "selenium", "rhenium"]):
+            elif any(
+                x in cl for x in ["gallium", "germanium", "indium", "beryl", "selenium", "rhenium"]
+            ):
                 categories["technology"].append(c)
-            elif any(x in cl for x in ["copper", "zinc", "lead", "tin", "aluminium", "bauxite", "alumina", "iron"]):
+            elif any(
+                x in cl
+                for x in [
+                    "copper",
+                    "zinc",
+                    "lead",
+                    "tin",
+                    "aluminium",
+                    "bauxite",
+                    "alumina",
+                    "iron",
+                ]
+            ):
                 categories["base_metals"].append(c)
             elif any(x in cl for x in ["gold", "silver"]):
                 categories["precious"].append(c)
@@ -255,7 +295,9 @@ async def list_countries(
 
 @app.get("/production/search", response_model=ProductionResponse, tags=["Production"])
 async def search_production(
-    commodity: str = Query(..., description="Commodity name (e.g., 'lithium minerals', 'cobalt, mine')"),
+    commodity: str = Query(
+        ..., description="Commodity name (e.g., 'lithium minerals', 'cobalt, mine')"
+    ),
     country: str | None = Query(None, description="Country name or ISO code"),
     year_from: int | None = Query(None, description="Start year (inclusive)"),
     year_to: int | None = Query(None, description="End year (inclusive)"),
@@ -346,13 +388,15 @@ async def get_commodity_ranking(
     rankings = []
     for i, r in enumerate(ranked, 1):
         share = (r["quantity"] / total * 100) if total > 0 else 0
-        rankings.append(RankedCountry(
-            rank=i,
-            country=r["country"],
-            country_iso3=r["country_iso3"],
-            quantity=r["quantity"],
-            share_percent=round(share, 2),
-        ))
+        rankings.append(
+            RankedCountry(
+                rank=i,
+                country=r["country"],
+                country_iso3=r["country_iso3"],
+                quantity=r["quantity"],
+                share_percent=round(share, 2),
+            )
+        )
 
     return RankingResponse(
         commodity=commodity,
@@ -395,7 +439,7 @@ async def get_time_series(
     )
 
     if not records:
-        raise HTTPException(status_code=404, detail=f"No time series data found")
+        raise HTTPException(status_code=404, detail="No time series data found")
 
     # Aggregate by year if no country specified
     if not country:
@@ -436,7 +480,9 @@ async def get_time_series(
                 yoy = None
                 if prev_qty and prev_qty > 0:
                     yoy = round(((r.quantity - prev_qty) / prev_qty) * 100, 2)
-                data.append(TimeSeriesPoint(year=r.year, quantity=r.quantity, yoy_change_percent=yoy))
+                data.append(
+                    TimeSeriesPoint(year=r.year, quantity=r.quantity, yoy_change_percent=yoy)
+                )
                 prev_qty = r.quantity
 
         return TimeSeriesResponse(

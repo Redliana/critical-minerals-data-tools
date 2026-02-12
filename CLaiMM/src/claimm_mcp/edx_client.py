@@ -1,8 +1,11 @@
 """EDX API client for NETL's Energy Data eXchange."""
 
-import httpx
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, BinaryIO
+from typing import Any
+
+import httpx
 from pydantic import BaseModel
 
 from .config import get_settings
@@ -149,9 +152,7 @@ class EDXClient:
         Returns:
             Resource with full metadata
         """
-        result = await self._request(
-            "GET", "resource_show", params={"id": resource_id}
-        )
+        result = await self._request("GET", "resource_show", params={"id": resource_id})
 
         return Resource(
             id=result.get("id", ""),
@@ -175,9 +176,7 @@ class EDXClient:
         Returns:
             Submission with full metadata and resources
         """
-        result = await self._request(
-            "GET", "package_show", params={"id": submission_id}
-        )
+        result = await self._request("GET", "package_show", params={"id": submission_id})
 
         resources = [
             Resource(

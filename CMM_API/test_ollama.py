@@ -3,7 +3,10 @@
 Uses simple query approach since tool calling isn't reliable with all models.
 """
 
+from __future__ import annotations
+
 import json
+
 import httpx
 
 API_BASE = "http://127.0.0.1:8000"
@@ -22,18 +25,15 @@ def ask_ollama(prompt: str, data: dict) -> str:
     messages = [
         {
             "role": "system",
-            "content": "You are a critical minerals analyst. Analyze the provided data and answer concisely."
+            "content": "You are a critical minerals analyst. Analyze the provided data and answer concisely.",
         },
-        {
-            "role": "user",
-            "content": f"{prompt}\n\nData:\n{json.dumps(data, indent=2)[:6000]}"
-        }
+        {"role": "user", "content": f"{prompt}\n\nData:\n{json.dumps(data, indent=2)[:6000]}"},
     ]
 
     resp = httpx.post(
         f"{OLLAMA_BASE}/api/chat",
         json={"model": MODEL, "messages": messages, "stream": False},
-        timeout=120.0
+        timeout=120.0,
     )
     return resp.json()["message"]["content"]
 
@@ -61,21 +61,29 @@ def main():
     print("\n[3] Search for cobalt datasets in CLAIMM")
     print("-" * 50)
     data = fetch_data("/claimm/datasets", {"q": "cobalt", "limit": 5})
-    answer = ask_ollama("What cobalt-related datasets are available? List their titles and what data they contain.", data)
+    answer = ask_ollama(
+        "What cobalt-related datasets are available? List their titles and what data they contain.",
+        data,
+    )
     print(answer)
 
     # Test 4: Unified Search
     print("\n[4] Unified search for rare earth data")
     print("-" * 50)
     data = fetch_data("/search", {"q": "rare earth", "limit": 5})
-    answer = ask_ollama("Summarize the rare earth data available from both CLAIMM and BGS sources.", data)
+    answer = ask_ollama(
+        "Summarize the rare earth data available from both CLAIMM and BGS sources.", data
+    )
     print(answer)
 
     # Test 5: Cobalt Rankings (BGS)
     print("\n[5] Cobalt supply chain analysis")
     print("-" * 50)
     data = fetch_data("/bgs/ranking/cobalt, mine", {"top_n": 10})
-    answer = ask_ollama("Analyze the cobalt supply chain. Which countries dominate? What are the supply chain risks?", data)
+    answer = ask_ollama(
+        "Analyze the cobalt supply chain. Which countries dominate? What are the supply chain risks?",
+        data,
+    )
     print(answer)
 
     print("\n" + "=" * 60)

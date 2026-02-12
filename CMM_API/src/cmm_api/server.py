@@ -7,6 +7,8 @@
     These provide fuller coverage (28 vs 7 endpoints) and direct LLM integration.
 """
 
+from __future__ import annotations
+
 import warnings
 
 warnings.warn(
@@ -17,11 +19,11 @@ warnings.warn(
     stacklevel=2,
 )
 
-import uvicorn
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
+import uvicorn  # noqa: E402
+from fastapi import FastAPI, HTTPException, Query  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from .clients import BGSClient, CLAIMMClient, UnifiedClient
+from .clients import BGSClient, CLAIMMClient, UnifiedClient  # noqa: E402
 
 app = FastAPI(
     title="CMM API",
@@ -46,6 +48,7 @@ unified_client = UnifiedClient()
 # ============================================================================
 # Root & Overview
 # ============================================================================
+
 
 @app.get("/")
 async def root():
@@ -83,6 +86,7 @@ async def get_overview():
 # Unified Search
 # ============================================================================
 
+
 @app.get("/search")
 async def search_all(
     q: str = Query(..., description="Search query"),
@@ -97,6 +101,7 @@ async def search_all(
 # ============================================================================
 # BGS Endpoints
 # ============================================================================
+
 
 @app.get("/bgs/commodities")
 async def get_bgs_commodities(
@@ -151,6 +156,7 @@ async def get_bgs_ranking(
 # CLAIMM Endpoints
 # ============================================================================
 
+
 @app.get("/claimm/datasets")
 async def search_claimm_datasets(
     q: str | None = Query(None, description="Search query"),
@@ -185,6 +191,7 @@ async def get_claimm_categories():
 # OpenAI Function Definitions
 # ============================================================================
 
+
 @app.get("/openai/functions")
 async def get_openai_functions():
     """Get OpenAI-compatible function definitions for all endpoints."""
@@ -196,9 +203,20 @@ async def get_openai_functions():
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "query": {"type": "string", "description": "Search query (e.g., 'lithium', 'cobalt production')"},
-                        "sources": {"type": "string", "description": "Comma-separated sources: CLAIMM,BGS", "default": "CLAIMM,BGS"},
-                        "limit": {"type": "integer", "description": "Max results per source", "default": 20},
+                        "query": {
+                            "type": "string",
+                            "description": "Search query (e.g., 'lithium', 'cobalt production')",
+                        },
+                        "sources": {
+                            "type": "string",
+                            "description": "Comma-separated sources: CLAIMM,BGS",
+                            "default": "CLAIMM,BGS",
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Max results per source",
+                            "default": 20,
+                        },
                     },
                     "required": ["query"],
                 },
@@ -209,11 +227,18 @@ async def get_openai_functions():
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "commodity": {"type": "string", "description": "Commodity (e.g., 'lithium minerals', 'cobalt, mine')"},
+                        "commodity": {
+                            "type": "string",
+                            "description": "Commodity (e.g., 'lithium minerals', 'cobalt, mine')",
+                        },
                         "country": {"type": "string", "description": "Country name or ISO3 code"},
                         "year_from": {"type": "integer", "description": "Start year"},
                         "year_to": {"type": "integer", "description": "End year"},
-                        "statistic_type": {"type": "string", "enum": ["Production", "Imports", "Exports"], "default": "Production"},
+                        "statistic_type": {
+                            "type": "string",
+                            "enum": ["Production", "Imports", "Exports"],
+                            "default": "Production",
+                        },
                         "limit": {"type": "integer", "default": 100},
                     },
                 },
@@ -224,9 +249,19 @@ async def get_openai_functions():
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "commodity": {"type": "string", "description": "Commodity name (e.g., 'lithium minerals', 'cobalt, mine')"},
-                        "year": {"type": "integer", "description": "Year (defaults to most recent)"},
-                        "top_n": {"type": "integer", "description": "Number of top countries", "default": 15},
+                        "commodity": {
+                            "type": "string",
+                            "description": "Commodity name (e.g., 'lithium minerals', 'cobalt, mine')",
+                        },
+                        "year": {
+                            "type": "integer",
+                            "description": "Year (defaults to most recent)",
+                        },
+                        "top_n": {
+                            "type": "integer",
+                            "description": "Number of top countries",
+                            "default": 15,
+                        },
                     },
                     "required": ["commodity"],
                 },
@@ -260,7 +295,11 @@ async def get_openai_functions():
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "critical_only": {"type": "boolean", "description": "Only return critical minerals", "default": False},
+                        "critical_only": {
+                            "type": "boolean",
+                            "description": "Only return critical minerals",
+                            "default": False,
+                        },
                     },
                 },
             },
@@ -280,9 +319,11 @@ async def get_openai_functions():
 # Entry Point
 # ============================================================================
 
+
 def main():
     """Run the server."""
     from .config import get_settings
+
     settings = get_settings()
     uvicorn.run(
         "cmm_api.server:app",

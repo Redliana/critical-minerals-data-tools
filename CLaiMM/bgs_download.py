@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Download BGS World Mineral Statistics for critical minerals."""
 
+from __future__ import annotations
+
 import csv
 import json
 import time
@@ -22,11 +24,9 @@ CRITICAL_MINERALS = [
     "nickel, smelter/refinery",
     "graphite",
     "manganese ore",
-
     # Rare earths
     "rare earth minerals",
     "rare earth oxides",
-
     # Strategic metals
     "platinum group metals, mine",
     "vanadium, mine",
@@ -34,7 +34,6 @@ CRITICAL_MINERALS = [
     "chromium ores and concentrates",
     "tantalum and niobium minerals",
     "titanium minerals",
-
     # Technology minerals
     "gallium, primary",
     "germanium metal",
@@ -44,7 +43,6 @@ CRITICAL_MINERALS = [
     "selenium, refined",
     "rhenium",
     "strontium minerals",
-
     # Base metals (important for supply chain)
     "copper, mine",
     "copper, refined",
@@ -57,18 +55,15 @@ CRITICAL_MINERALS = [
     "aluminium, primary",
     "bauxite",
     "alumina",
-
     # Industrial minerals
     "fluorspar",
     "magnesite",
     "phosphate rock",
     "barytes",
     "borates",
-
     # Precious metals
     "gold, mine",
     "silver, mine",
-
     # Other critical
     "antimony, mine",
     "molybdenum, mine",
@@ -89,12 +84,6 @@ def fetch_commodity_data(
     offset = 0
 
     while True:
-        params = {
-            "limit": limit,
-            "offset": offset,
-            "bgs_commodity_trans": commodity,
-            "bgs_statistic_type_trans": stat_type,
-        }
 
         # Build URL with encoded parameters
         url = f"{BGS_API_BASE}?limit={limit}&offset={offset}"
@@ -106,7 +95,7 @@ def fetch_commodity_data(
                 response = client.get(url, headers={"Accept": "application/json"})
                 response.raise_for_status()
                 data = response.json()
-        except Exception as e:
+        except (httpx.HTTPStatusError, httpx.ConnectError, ConnectionError) as e:
             print(f"    Error fetching {commodity} ({stat_type}): {e}")
             break
 
@@ -214,12 +203,14 @@ def main():
             save_to_csv(commodity_records["Production"], commodity_file)
 
         # Track summary
-        summary.append({
-            "commodity": commodity,
-            "production_records": len(commodity_records["Production"]),
-            "import_records": len(commodity_records["Imports"]),
-            "export_records": len(commodity_records["Exports"]),
-        })
+        summary.append(
+            {
+                "commodity": commodity,
+                "production_records": len(commodity_records["Production"]),
+                "import_records": len(commodity_records["Imports"]),
+                "export_records": len(commodity_records["Exports"]),
+            }
+        )
 
         time.sleep(0.5)  # Rate limiting between commodities
 
@@ -240,7 +231,9 @@ def main():
     # Summary file
     summary_file = output_dir / "bgs_download_summary.csv"
     with open(summary_file, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["commodity", "production_records", "import_records", "export_records"])
+        writer = csv.DictWriter(
+            f, fieldnames=["commodity", "production_records", "import_records", "export_records"]
+        )
         writer.writeheader()
         writer.writerows(summary)
     print(f"  Summary: {summary_file.name}")

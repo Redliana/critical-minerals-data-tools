@@ -4,6 +4,8 @@ Provides access to DOE technical reports and publications on critical minerals
 and materials science.
 """
 
+from __future__ import annotations
+
 from mcp.server.fastmcp import FastMCP
 
 from .client import OSTIClient
@@ -21,7 +23,7 @@ Provides access to DOE technical reports and publications related to:
 - Supply chain analysis
 
 Use these tools to search research literature, find technical reports, and discover
-publications relevant to critical minerals and materials research."""
+publications relevant to critical minerals and materials research.""",
 )
 
 # Initialize client
@@ -31,6 +33,7 @@ client = OSTIClient()
 # ============================================================================
 # Overview Tools
 # ============================================================================
+
 
 @mcp.tool()
 async def get_osti_overview() -> dict:
@@ -67,6 +70,7 @@ async def list_commodities() -> dict[str, str]:
 # ============================================================================
 # Search Tools
 # ============================================================================
+
 
 @mcp.tool()
 async def search_osti_documents(
@@ -124,6 +128,7 @@ async def get_osti_document(osti_id: str) -> dict | None:
 # Browse Tools
 # ============================================================================
 
+
 @mcp.tool()
 async def get_documents_by_commodity(
     commodity: str,
@@ -168,6 +173,7 @@ async def get_recent_documents(limit: int = 20) -> dict:
 # ============================================================================
 # Entry Point
 # ============================================================================
+
 
 def main():
     """Run the MCP server."""

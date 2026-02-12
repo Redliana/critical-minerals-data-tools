@@ -1,8 +1,10 @@
 """BGS World Mineral Statistics API client."""
 
-import httpx
-from urllib.parse import quote
+from __future__ import annotations
+
 from typing import Any
+
+import httpx
 from pydantic import BaseModel
 
 
@@ -140,7 +142,7 @@ class BGSClient:
                     commodity = feature.get("properties", {}).get("bgs_commodity_trans")
                     if commodity:
                         commodities.add(commodity)
-            except Exception:
+            except (httpx.HTTPError, ValueError, KeyError):
                 break
 
         return sorted(commodities)
@@ -232,7 +234,7 @@ class BGSClient:
             offset += fetch_limit
 
         # Sort by year descending
-        all_records.sort(key=lambda x: (x.year or 0), reverse=True)
+        all_records.sort(key=lambda x: x.year or 0, reverse=True)
 
         return all_records[:limit]
 
@@ -264,7 +266,7 @@ class BGSClient:
         )
 
         # Sort by year ascending for time series
-        records.sort(key=lambda x: (x.year or 0))
+        records.sort(key=lambda x: x.year or 0)
 
         return records
 
@@ -302,7 +304,6 @@ class BGSClient:
 
         # Filter to target year and aggregate by country
         country_totals = {}
-        units = None
 
         for record in records:
             if record.year != year:
@@ -320,7 +321,6 @@ class BGSClient:
                     "year": year,
                 }
             country_totals[country]["quantity"] += record.quantity
-            units = record.units
 
         # Sort by quantity descending
         ranked = sorted(

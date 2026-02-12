@@ -1,7 +1,8 @@
 """MCP server for UN Comtrade international trade data."""
 
-from typing import Optional
+from __future__ import annotations
 
+import httpx
 from mcp.server.fastmcp import FastMCP
 
 from .client import ComtradeClient
@@ -76,7 +77,7 @@ async def list_critical_minerals() -> dict:
 
 
 @mcp.tool()
-async def list_reporters(search: Optional[str] = None, limit: int = 50) -> dict:
+async def list_reporters(search: str | None = None, limit: int = 50) -> dict:
     """
     List available reporter countries.
 
@@ -92,9 +93,7 @@ async def list_reporters(search: Optional[str] = None, limit: int = 50) -> dict:
 
     if search:
         search_lower = search.lower()
-        reporters = [
-            r for r in reporters if search_lower in r.get("text", "").lower()
-        ]
+        reporters = [r for r in reporters if search_lower in r.get("text", "").lower()]
 
     reporters = reporters[:limit]
     return {
@@ -105,7 +104,7 @@ async def list_reporters(search: Optional[str] = None, limit: int = 50) -> dict:
 
 
 @mcp.tool()
-async def list_partners(search: Optional[str] = None, limit: int = 50) -> dict:
+async def list_partners(search: str | None = None, limit: int = 50) -> dict:
     """
     List available partner countries/areas.
 
@@ -121,9 +120,7 @@ async def list_partners(search: Optional[str] = None, limit: int = 50) -> dict:
 
     if search:
         search_lower = search.lower()
-        partners = [
-            p for p in partners if search_lower in p.get("text", "").lower()
-        ]
+        partners = [p for p in partners if search_lower in p.get("text", "").lower()]
 
     partners = partners[:limit]
     return {
@@ -135,7 +132,7 @@ async def list_partners(search: Optional[str] = None, limit: int = 50) -> dict:
 
 @mcp.tool()
 async def list_commodities(
-    search: Optional[str] = None,
+    search: str | None = None,
     hs_level: int = 4,
     limit: int = 50,
 ) -> dict:
@@ -155,17 +152,14 @@ async def list_commodities(
 
     # Filter by HS level (code length)
     if hs_level in [2, 4, 6]:
-        commodities = [
-            c for c in commodities
-            if len(str(c.get("id", ""))) == hs_level
-        ]
+        commodities = [c for c in commodities if len(str(c.get("id", ""))) == hs_level]
 
     if search:
         search_lower = search.lower()
         commodities = [
-            c for c in commodities
-            if search_lower in c.get("text", "").lower()
-            or search_lower in str(c.get("id", ""))
+            c
+            for c in commodities
+            if search_lower in c.get("text", "").lower() or search_lower in str(c.get("id", ""))
         ]
 
     commodities = commodities[:limit]
@@ -331,16 +325,14 @@ async def get_commodity_trade_summary(
                     country_totals[country] = country_totals.get(country, 0) + r.trade_value
                     if commodity_name is None:
                         commodity_name = r.commodity
-        except Exception:
+        except (httpx.HTTPError, OSError, ValueError):
             continue
 
     if not country_totals:
         return f"No {flow} data found for commodity {commodity} in {year}"
 
     # Sort by value
-    sorted_countries = sorted(
-        country_totals.items(), key=lambda x: x[1], reverse=True
-    )
+    sorted_countries = sorted(country_totals.items(), key=lambda x: x[1], reverse=True)
 
     total = sum(v for _, v in sorted_countries)
     flow_name = "Imports" if flow == "M" else "Exports"
@@ -377,6 +369,7 @@ async def get_country_trade_profile(
         Summary of country's trade in critical minerals
     """
     import asyncio
+
     client = get_client()
     profile = {
         "country_code": country,
@@ -409,7 +402,7 @@ async def get_country_trade_profile(
                     profile["imports"][mineral_name] = import_total
                 if export_total > 0:
                     profile["exports"][mineral_name] = export_total
-            except Exception:
+            except (httpx.HTTPError, OSError, ValueError):
                 continue
 
     profile["total_imports"] = sum(profile["imports"].values())

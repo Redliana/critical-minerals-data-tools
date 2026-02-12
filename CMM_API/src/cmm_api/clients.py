@@ -1,18 +1,22 @@
 """Data clients for CLAIMM (EDX) and BGS APIs."""
 
-import httpx
+from __future__ import annotations
+
 from typing import Any
+
+import httpx
 from pydantic import BaseModel
 
 from .config import get_settings
-
 
 # ============================================================================
 # Shared Models
 # ============================================================================
 
+
 class MineralRecord(BaseModel):
     """Unified mineral data record."""
+
     source: str  # "CLAIMM" or "BGS"
     commodity: str
     country: str | None = None
@@ -26,6 +30,7 @@ class MineralRecord(BaseModel):
 
 class DatasetInfo(BaseModel):
     """Dataset metadata."""
+
     source: str
     id: str
     title: str
@@ -38,19 +43,39 @@ class DatasetInfo(BaseModel):
 # BGS Client
 # ============================================================================
 
+
 class BGSClient:
     """Client for BGS World Mineral Statistics API."""
 
     CRITICAL_MINERALS = [
-        "lithium minerals", "cobalt, mine", "cobalt, refined",
-        "nickel, mine", "nickel, smelter/refinery", "graphite", "manganese ore",
-        "rare earth minerals", "rare earth oxides",
-        "platinum group metals, mine", "vanadium, mine", "tungsten, mine",
-        "chromium ores and concentrates", "tantalum and niobium minerals",
-        "titanium minerals", "gallium, primary", "germanium metal",
-        "indium, refinery", "beryl", "copper, mine", "copper, refined",
-        "zinc, mine", "lead, mine", "gold, mine", "silver, mine",
-        "antimony, mine", "molybdenum, mine", "iron ore",
+        "lithium minerals",
+        "cobalt, mine",
+        "cobalt, refined",
+        "nickel, mine",
+        "nickel, smelter/refinery",
+        "graphite",
+        "manganese ore",
+        "rare earth minerals",
+        "rare earth oxides",
+        "platinum group metals, mine",
+        "vanadium, mine",
+        "tungsten, mine",
+        "chromium ores and concentrates",
+        "tantalum and niobium minerals",
+        "titanium minerals",
+        "gallium, primary",
+        "germanium metal",
+        "indium, refinery",
+        "beryl",
+        "copper, mine",
+        "copper, refined",
+        "zinc, mine",
+        "lead, mine",
+        "gold, mine",
+        "silver, mine",
+        "antimony, mine",
+        "molybdenum, mine",
+        "iron ore",
     ]
 
     def __init__(self):
@@ -99,19 +124,21 @@ class BGSClient:
             if year_to and year and year > year_to:
                 continue
 
-            records.append(MineralRecord(
-                source="BGS",
-                commodity=props.get("bgs_commodity_trans", ""),
-                country=props.get("country_trans"),
-                country_iso=props.get("country_iso3_code"),
-                year=year,
-                quantity=props.get("quantity"),
-                units=props.get("units"),
-                statistic_type=statistic_type,
-                notes=props.get("concat_table_notes_text"),
-            ))
+            records.append(
+                MineralRecord(
+                    source="BGS",
+                    commodity=props.get("bgs_commodity_trans", ""),
+                    country=props.get("country_trans"),
+                    country_iso=props.get("country_iso3_code"),
+                    year=year,
+                    quantity=props.get("quantity"),
+                    units=props.get("units"),
+                    statistic_type=statistic_type,
+                    notes=props.get("concat_table_notes_text"),
+                )
+            )
 
-        return sorted(records, key=lambda x: (x.year or 0), reverse=True)[:limit]
+        return sorted(records, key=lambda x: x.year or 0, reverse=True)[:limit]
 
     async def get_commodities(self, critical_only: bool = False) -> list[str]:
         """Get list of BGS commodities."""
@@ -185,6 +212,7 @@ class BGSClient:
 # CLAIMM (EDX) Client
 # ============================================================================
 
+
 class CLAIMMClient:
     """Client for NETL EDX CLAIMM API."""
 
@@ -248,14 +276,16 @@ class CLAIMMClient:
                 for r in pkg.get("resources", [])
             ]
 
-            datasets.append(DatasetInfo(
-                source="CLAIMM",
-                id=pkg.get("id", ""),
-                title=pkg.get("title", pkg.get("name", "")),
-                description=pkg.get("notes"),
-                tags=[t.get("name", "") for t in pkg.get("tags", [])],
-                resources=resources,
-            ))
+            datasets.append(
+                DatasetInfo(
+                    source="CLAIMM",
+                    id=pkg.get("id", ""),
+                    title=pkg.get("title", pkg.get("name", "")),
+                    description=pkg.get("notes"),
+                    tags=[t.get("name", "") for t in pkg.get("tags", [])],
+                    resources=resources,
+                )
+            )
 
         return datasets
 
@@ -283,7 +313,7 @@ class CLAIMMClient:
                 tags=[t.get("name", "") for t in result.get("tags", [])],
                 resources=resources,
             )
-        except Exception:
+        except (httpx.HTTPError, OSError, KeyError):
             return None
 
     async def get_categories(self) -> dict[str, int]:
@@ -321,6 +351,7 @@ class CLAIMMClient:
 # Unified Client
 # ============================================================================
 
+
 class UnifiedClient:
     """Unified client for both CLAIMM and BGS data sources."""
 
@@ -345,7 +376,7 @@ class UnifiedClient:
                     "count": len(claimm_results),
                     "datasets": [ds.model_dump() for ds in claimm_results],
                 }
-            except Exception as e:
+            except (httpx.HTTPError, OSError, KeyError) as e:
                 results["sources"]["CLAIMM"] = {"error": str(e)}
 
         if "BGS" in sources:
@@ -381,7 +412,7 @@ class UnifiedClient:
                     results["sources"]["BGS"] = {
                         "message": "Specify a mineral (lithium, cobalt, nickel, etc.) for BGS data"
                     }
-            except Exception as e:
+            except (httpx.HTTPError, OSError, KeyError) as e:
                 results["sources"]["BGS"] = {"error": str(e)}
 
         return results
@@ -409,7 +440,7 @@ class UnifiedClient:
         # Get CLAIMM categories
         try:
             overview["sources"]["CLAIMM"]["categories"] = await self.claimm.get_categories()
-        except Exception:
+        except (httpx.HTTPError, OSError, KeyError):
             pass
 
         # Get BGS commodities

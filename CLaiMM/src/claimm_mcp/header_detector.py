@@ -5,10 +5,11 @@ Detects column headers from CSV and Excel files without downloading the full fil
 Uses HTTP Range requests to fetch only the first portion of the file.
 """
 
+from __future__ import annotations
+
 import asyncio
 import csv
 import io
-import zipfile
 from typing import Any
 
 import httpx
@@ -76,7 +77,7 @@ class HeaderDetector:
                         "resource_id": resource_id,
                     }
 
-            except Exception as e:
+            except (httpx.HTTPStatusError, httpx.ConnectError, OSError) as e:
                 return {
                     "success": False,
                     "error": str(e),
@@ -112,7 +113,7 @@ class HeaderDetector:
         try:
             reader = csv.reader(io.StringIO(content), delimiter=delimiter)
             rows = list(reader)
-        except Exception as e:
+        except (ValueError, csv.Error) as e:
             return {
                 "success": False,
                 "error": f"CSV parse error: {e}",
@@ -166,13 +167,18 @@ class HeaderDetector:
             values = [v for v in values if v.strip()]  # Non-empty values
 
             col_type = self._infer_type(values)
-            column_types.append({
-                "name": header,
-                "type": col_type["type"],
-                "nullable": any(not v.strip() for v in [row[i] if i < len(row) else "" for row in sample_rows]),
-                "sample_values": values[:3],
-                **col_type.get("metadata", {}),
-            })
+            column_types.append(
+                {
+                    "name": header,
+                    "type": col_type["type"],
+                    "nullable": any(
+                        not v.strip()
+                        for v in [row[i] if i < len(row) else "" for row in sample_rows]
+                    ),
+                    "sample_values": values[:3],
+                    **col_type.get("metadata", {}),
+                }
+            )
 
         return column_types
 
@@ -256,7 +262,7 @@ class HeaderDetector:
                         "resource_id": resource_id,
                     }
 
-            except Exception as e:
+            except (httpx.HTTPStatusError, httpx.ConnectError, OSError) as e:
                 return {
                     "success": False,
                     "error": str(e),
@@ -281,10 +287,7 @@ class HeaderDetector:
                 rows = list(ws.iter_rows(max_row=6, values_only=True))
                 if rows:
                     headers = [str(c) if c else "" for c in rows[0]]
-                    sample_rows = [
-                        [str(c) if c else "" for c in row]
-                        for row in rows[1:6]
-                    ]
+                    sample_rows = [[str(c) if c else "" for c in row] for row in rows[1:6]]
                     sheets[sheet_name] = {
                         "headers": headers,
                         "column_count": len(headers),
@@ -302,7 +305,7 @@ class HeaderDetector:
                 "sheet_names": list(sheets.keys()),
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError) as e:
             return {
                 "success": False,
                 "error": f"Excel parse error (may need full file): {e}",

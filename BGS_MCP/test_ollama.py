@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Test BGS REST API with Ollama (local LLM)."""
 
+from __future__ import annotations
+
 import json
+
 import httpx
 
 # Configuration
@@ -19,14 +22,16 @@ def get_bgs_tools():
     # Convert to Ollama tool format
     tools = []
     for f in functions:
-        tools.append({
-            "type": "function",
-            "function": {
-                "name": f["name"],
-                "description": f["description"],
-                "parameters": f["parameters"],
+        tools.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": f["name"],
+                    "description": f["description"],
+                    "parameters": f["parameters"],
+                },
             }
-        })
+        )
     return tools
 
 
@@ -84,18 +89,18 @@ def chat_with_ollama(user_message: str) -> str:
     """Chat with Ollama using tool calling."""
     tools = get_bgs_tools()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"User: {user_message}")
-    print('='*60)
+    print("=" * 60)
 
     messages = [
         {
             "role": "system",
             "content": "You are a helpful assistant with access to BGS World Mineral Statistics. "
-                       "Use the provided tools to answer questions about mineral production. "
-                       "Always call a tool when asked about mineral data."
+            "Use the provided tools to answer questions about mineral production. "
+            "Always call a tool when asked about mineral data.",
         },
-        {"role": "user", "content": user_message}
+        {"role": "user", "content": user_message},
     ]
 
     # First call to Ollama
@@ -139,10 +144,12 @@ def chat_with_ollama(user_message: str) -> str:
                 print(f"  Result: {result_str}")
 
             # Add tool response
-            messages.append({
-                "role": "tool",
-                "content": json.dumps(api_result),
-            })
+            messages.append(
+                {
+                    "role": "tool",
+                    "content": json.dumps(api_result),
+                }
+            )
 
         # Get final response
         final_response = httpx.post(
@@ -160,9 +167,9 @@ def chat_with_ollama(user_message: str) -> str:
     else:
         final_answer = assistant_message.get("content", "No response")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Assistant Response:")
-    print('='*60)
+    print("=" * 60)
     print(final_answer)
 
     return final_answer
@@ -170,9 +177,9 @@ def chat_with_ollama(user_message: str) -> str:
 
 def simple_query(user_message: str) -> str:
     """Simple approach: fetch data first, then ask LLM to summarize."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"User: {user_message}")
-    print('='*60)
+    print("=" * 60)
 
     # Determine what data to fetch based on keywords
     data = None
@@ -245,9 +252,9 @@ Provide a clear, concise answer based on the data above."""
     result = response.json()
     answer = result.get("message", {}).get("content", "No response")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Assistant Response:")
-    print('='*60)
+    print("=" * 60)
     print(answer)
 
     return answer
@@ -255,17 +262,19 @@ Provide a clear, concise answer based on the data above."""
 
 def main():
     """Run tests."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"BGS REST API + Ollama ({MODEL}) Test")
-    print("="*60)
+    print("=" * 60)
 
     # Check if Ollama is running
     try:
         response = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=5.0)
         response.raise_for_status()
-        print(f"Ollama is running with models: {[m['name'] for m in response.json().get('models', [])]}")
-    except Exception as e:
-        print(f"Error: Ollama not running. Start with: ollama serve")
+        print(
+            f"Ollama is running with models: {[m['name'] for m in response.json().get('models', [])]}"
+        )
+    except (httpx.HTTPStatusError, httpx.ConnectError, ConnectionError):
+        print("Error: Ollama not running. Start with: ollama serve")
         return
 
     # Check if BGS API is running
@@ -273,13 +282,13 @@ def main():
         response = httpx.get(f"{BGS_API_URL}/", timeout=5.0)
         response.raise_for_status()
         print("BGS API is running")
-    except Exception as e:
-        print(f"Error: BGS API not running. Start with: uv run bgs-api")
+    except (httpx.HTTPStatusError, httpx.ConnectError, ConnectionError):
+        print("Error: BGS API not running. Start with: uv run bgs-api")
         return
 
-    print("\n" + "-"*60)
+    print("\n" + "-" * 60)
     print("Testing with tool calling (if supported by model)...")
-    print("-"*60)
+    print("-" * 60)
 
     queries = [
         "What are the top 5 lithium producing countries?",
@@ -290,18 +299,18 @@ def main():
     try:
         for query in queries[:1]:  # Just one query for tool calling test
             chat_with_ollama(query)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"\nTool calling failed: {e}")
         print("Falling back to simple query approach...")
 
-    print("\n" + "-"*60)
+    print("\n" + "-" * 60)
     print("Testing with simple query approach (always works)...")
-    print("-"*60)
+    print("-" * 60)
 
     for query in queries:
         try:
             simple_query(query)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"Error: {e}")
 
 

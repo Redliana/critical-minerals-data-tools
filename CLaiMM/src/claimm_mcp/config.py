@@ -1,8 +1,11 @@
 """Configuration management for CLAIMM MCP Server."""
 
-from pydantic_settings import BaseSettings
-from pydantic import Field
+from __future__ import annotations
+
 from typing import Literal
+
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):

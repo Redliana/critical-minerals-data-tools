@@ -1,5 +1,7 @@
 """LLM client using LiteLLM for multi-provider support."""
 
+from __future__ import annotations
+
 import json
 from typing import Any
 
@@ -120,10 +122,10 @@ Only include the JSON in your response, no other text."""
             result_info = f"""
 {i}. **{sub.title or sub.name}**
    - ID: {sub.id}
-   - Description: {(sub.notes or 'No description')[:300]}...
-   - Tags: {', '.join(sub.tags[:5]) if sub.tags else 'None'}
+   - Description: {(sub.notes or "No description")[:300]}...
+   - Tags: {", ".join(sub.tags[:5]) if sub.tags else "None"}
    - Resources: {len(sub.resources)} file(s)
-   - Formats: {', '.join(set(r.format for r in sub.resources if r.format)) or 'Unknown'}
+   - Formats: {", ".join(set(r.format for r in sub.resources if r.format)) or "Unknown"}
 """
             results_context.append(result_info)
 
@@ -174,22 +176,22 @@ Provide a helpful summary of these results."""
 Resource Information:
 - Name: {resource.name}
 - ID: {resource.id}
-- Format: {resource.format or 'Unknown'}
-- Size: {resource.size or 'Unknown'} bytes
-- Description: {resource.description or 'No description available'}
-- Created: {resource.created or 'Unknown'}
-- Last Modified: {resource.last_modified or 'Unknown'}
-- Download URL: {resource.url or 'Not available'}
+- Format: {resource.format or "Unknown"}
+- Size: {resource.size or "Unknown"} bytes
+- Description: {resource.description or "No description available"}
+- Created: {resource.created or "Unknown"}
+- Last Modified: {resource.last_modified or "Unknown"}
+- Download URL: {resource.url or "Not available"}
 """
 
         if submission:
             context += f"""
 Parent Dataset Information:
 - Title: {submission.title or submission.name}
-- Description: {submission.notes or 'No description'}
-- Author: {submission.author or 'Unknown'}
-- Organization: {submission.organization or 'Unknown'}
-- Tags: {', '.join(submission.tags) if submission.tags else 'None'}
+- Description: {submission.notes or "No description"}
+- Author: {submission.author or "Unknown"}
+- Organization: {submission.organization or "Unknown"}
+- Tags: {", ".join(submission.tags) if submission.tags else "None"}
 - Total Resources: {len(submission.resources)}
 """
 
@@ -236,8 +238,8 @@ User question: {question}"""
 
         context = f"""
 Original query: {query}
-Found tags: {', '.join(list(all_tags)[:20])}
-Sample titles: {'; '.join(keywords[:5])}
+Found tags: {", ".join(list(all_tags)[:20])}
+Sample titles: {"; ".join(keywords[:5])}
 """
 
         system_prompt = """Based on a search in the CLAIMM (Critical Minerals and Materials) database, suggest 3-5 related search queries that might help the user find more relevant data.

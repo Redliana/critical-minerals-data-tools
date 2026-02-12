@@ -1,5 +1,7 @@
 """OSTI data client for accessing document catalog and metadata."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -72,7 +74,7 @@ class OSTIClient:
                     f"Document catalog not found at {catalog_path}. "
                     "Set OSTI_DATA_PATH environment variable or provide data_path."
                 )
-            with open(catalog_path, "r") as f:
+            with open(catalog_path) as f:
                 data = json.load(f)
             self._catalog = pd.DataFrame(data)
         return self._catalog
@@ -180,8 +182,12 @@ class OSTIClient:
                 commodity_category=row.get("commodity_category"),
                 doi=row.get("doi"),
                 product_type=row.get("product_type"),
-                research_orgs=row.get("research_orgs", []) if isinstance(row.get("research_orgs"), list) else [],
-                sponsor_orgs=row.get("sponsor_orgs", []) if isinstance(row.get("sponsor_orgs"), list) else [],
+                research_orgs=row.get("research_orgs", [])
+                if isinstance(row.get("research_orgs"), list)
+                else [],
+                sponsor_orgs=row.get("sponsor_orgs", [])
+                if isinstance(row.get("sponsor_orgs"), list)
+                else [],
             )
             documents.append(doc)
 
@@ -213,17 +219,19 @@ class OSTIClient:
             commodity_category=row.get("commodity_category"),
             doi=row.get("doi"),
             product_type=row.get("product_type"),
-            research_orgs=row.get("research_orgs", []) if isinstance(row.get("research_orgs"), list) else [],
-            sponsor_orgs=row.get("sponsor_orgs", []) if isinstance(row.get("sponsor_orgs"), list) else [],
+            research_orgs=row.get("research_orgs", [])
+            if isinstance(row.get("research_orgs"), list)
+            else [],
+            sponsor_orgs=row.get("sponsor_orgs", [])
+            if isinstance(row.get("sponsor_orgs"), list)
+            else [],
         )
 
     def list_commodities(self) -> dict[str, str]:
         """List available commodity categories with descriptions."""
         return self.COMMODITIES.copy()
 
-    def get_documents_by_commodity(
-        self, commodity: str, limit: int = 100
-    ) -> list[OSTIDocument]:
+    def get_documents_by_commodity(self, commodity: str, limit: int = 100) -> list[OSTIDocument]:
         """Get documents for a specific commodity category.
 
         Args:
@@ -260,8 +268,12 @@ class OSTIClient:
                 commodity_category=row.get("commodity_category"),
                 doi=row.get("doi"),
                 product_type=row.get("product_type"),
-                research_orgs=row.get("research_orgs", []) if isinstance(row.get("research_orgs"), list) else [],
-                sponsor_orgs=row.get("sponsor_orgs", []) if isinstance(row.get("sponsor_orgs"), list) else [],
+                research_orgs=row.get("research_orgs", [])
+                if isinstance(row.get("research_orgs"), list)
+                else [],
+                sponsor_orgs=row.get("sponsor_orgs", [])
+                if isinstance(row.get("sponsor_orgs"), list)
+                else [],
             )
             documents.append(doc)
 
