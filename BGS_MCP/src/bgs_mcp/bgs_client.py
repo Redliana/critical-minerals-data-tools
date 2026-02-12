@@ -304,7 +304,6 @@ class BGSClient:
 
         # Filter to target year and aggregate by country
         country_totals = {}
-        units = None
 
         for record in records:
             if record.year != year:
@@ -322,7 +321,6 @@ class BGSClient:
                     "year": year,
                 }
             country_totals[country]["quantity"] += record.quantity
-            units = record.units
 
         # Sort by quantity descending
         ranked = sorted(

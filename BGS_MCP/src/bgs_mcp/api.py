@@ -439,7 +439,7 @@ async def get_time_series(
     )
 
     if not records:
-        raise HTTPException(status_code=404, detail=f"No time series data found")
+        raise HTTPException(status_code=404, detail="No time series data found")
 
     # Aggregate by year if no country specified
     if not country:

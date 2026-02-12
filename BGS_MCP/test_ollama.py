@@ -273,8 +273,8 @@ def main():
         print(
             f"Ollama is running with models: {[m['name'] for m in response.json().get('models', [])]}"
         )
-    except (httpx.HTTPStatusError, httpx.ConnectError, ConnectionError) as e:
-        print(f"Error: Ollama not running. Start with: ollama serve")
+    except (httpx.HTTPStatusError, httpx.ConnectError, ConnectionError):
+        print("Error: Ollama not running. Start with: ollama serve")
         return
 
     # Check if BGS API is running
@@ -282,8 +282,8 @@ def main():
         response = httpx.get(f"{BGS_API_URL}/", timeout=5.0)
         response.raise_for_status()
         print("BGS API is running")
-    except (httpx.HTTPStatusError, httpx.ConnectError, ConnectionError) as e:
-        print(f"Error: BGS API not running. Start with: uv run bgs-api")
+    except (httpx.HTTPStatusError, httpx.ConnectError, ConnectionError):
+        print("Error: BGS API not running. Start with: uv run bgs-api")
         return
 
     print("\n" + "-" * 60)

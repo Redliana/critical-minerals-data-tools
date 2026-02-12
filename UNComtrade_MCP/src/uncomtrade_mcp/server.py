@@ -327,7 +327,7 @@ async def get_commodity_trade_summary(
                     country_totals[country] = country_totals.get(country, 0) + r.trade_value
                     if commodity_name is None:
                         commodity_name = r.commodity
-        except (httpx.HTTPError, OSError, ValueError) as e:
+        except (httpx.HTTPError, OSError, ValueError):
             continue
 
     if not country_totals:

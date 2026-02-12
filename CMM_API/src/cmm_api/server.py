@@ -19,11 +19,11 @@ warnings.warn(
     stacklevel=2,
 )
 
-import uvicorn
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
+import uvicorn  # noqa: E402
+from fastapi import FastAPI, HTTPException, Query  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from .clients import BGSClient, CLAIMMClient, UnifiedClient
+from .clients import BGSClient, CLAIMMClient, UnifiedClient  # noqa: E402
 
 app = FastAPI(
     title="CMM API",

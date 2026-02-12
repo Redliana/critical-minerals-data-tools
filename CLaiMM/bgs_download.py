@@ -84,12 +84,6 @@ def fetch_commodity_data(
     offset = 0
 
     while True:
-        params = {
-            "limit": limit,
-            "offset": offset,
-            "bgs_commodity_trans": commodity,
-            "bgs_statistic_type_trans": stat_type,
-        }
 
         # Build URL with encoded parameters
         url = f"{BGS_API_BASE}?limit={limit}&offset={offset}"

@@ -74,7 +74,7 @@ async def detect_file_schema(
     download_url = edx.get_download_url(resource_id)
 
     # Format output
-    output = f"**File Schema Detection**\n\n"
+    output = "**File Schema Detection**\n\n"
     output += f"- Resource ID: `{resource_id}`\n"
     output += f"- Format: {result.get('format', format)}\n"
     output += f"- Bytes fetched: {result.get('bytes_fetched', 'N/A'):,}\n"
