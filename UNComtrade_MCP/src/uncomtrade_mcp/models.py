@@ -63,16 +63,17 @@ class CommodityReference(BaseModel):
 
 # Critical Minerals HS Code Mapping (CMM Focus)
 CRITICAL_MINERAL_HS_CODES: dict[str, list[str]] = {
-    "lithium": ["282520", "283691", "850650"],  # Lithium oxide/hydroxide, carbonate, batteries
-    "cobalt": ["2605", "810520", "810590"],  # Cobalt ores, unwrought, articles
+    "lithium": ["253090", "282520", "283691", "850650"],  # Ores, oxide/hydroxide, carbonate, batteries
+    "cobalt": ["2605", "282200", "810520", "810590"],  # Ores, oxides, unwrought, articles
     "hree": ["284690"],  # Heavy REE compounds (Dy, Tb, etc.)
     "lree": ["284610"],  # Light REE compounds (Nd, Pr, etc.)
-    "rare_earth": ["2846"],  # All REE compounds
-    "graphite": ["250410", "250490"],  # Natural graphite (amorphous, crystalline)
-    "nickel": ["2604", "750210", "750220"],  # Nickel ores, unwrought, alloys
+    "rare_earth": ["2846", "280530"],  # REE compounds, REE metals
+    "graphite": ["250410", "250490", "380110"],  # Natural (amorphous, crystalline), artificial
+    "nickel": ["2604", "7501", "750210", "750220", "281122"],  # Ores, matte, unwrought, alloys, oxides
     "manganese": ["2602", "811100"],  # Manganese ores, unwrought
     "gallium": ["811292"],  # Gallium unwrought
     "germanium": ["811299"],  # Germanium (other base metals)
+    "copper": ["7402", "7403"],  # Refined copper, unrefined copper
 }
 
 # Friendly names for display
@@ -87,4 +88,5 @@ MINERAL_NAMES: dict[str, str] = {
     "manganese": "Manganese (Mn)",
     "gallium": "Gallium (Ga)",
     "germanium": "Germanium (Ge)",
+    "copper": "Copper (Cu)",
 }

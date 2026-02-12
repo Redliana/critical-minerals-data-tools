@@ -1,4 +1,21 @@
-"""Unified REST API server for Critical Minerals and Materials data."""
+"""Unified REST API server for Critical Minerals and Materials data.
+
+.. deprecated::
+    This REST API is deprecated. Use the dedicated MCP servers instead:
+    - CLaiMM_MCP (Data_Needs/CLaiMM_MCP/) - 17 tools for NETL EDX CLAIMM data
+    - BGS_MCP (Data_Needs/BGS_MCP/) - 11 tools for BGS World Mineral Statistics
+    These provide fuller coverage (28 vs 7 endpoints) and direct LLM integration.
+"""
+
+import warnings
+
+warnings.warn(
+    "CMM_API is deprecated. Use CLaiMM_MCP and BGS_MCP servers instead, "
+    "which provide 28 tools (vs 7 endpoints here) with direct LLM integration. "
+    "See Data_Needs/CLaiMM_MCP/ and Data_Needs/BGS_MCP/.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query

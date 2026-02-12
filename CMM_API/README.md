@@ -1,5 +1,18 @@
 # CMM API - Unified Critical Minerals and Materials API
 
+> **DEPRECATED**: This REST API is deprecated in favor of the dedicated MCP servers
+> which provide fuller coverage and direct LLM integration:
+>
+> - **CLaiMM MCP Server** (`Data_Needs/CLaiMM_MCP/`) - 17 tools for NETL EDX CLAIMM data
+> - **BGS MCP Server** (`Data_Needs/BGS_MCP/`) - 11 tools for BGS World Mineral Statistics
+>
+> Together these MCP servers expose 28 tools (vs 7 endpoints here) and integrate
+> directly with Claude Code and Claude Desktop without needing a running REST server.
+>
+> This package is kept for reference only and may be removed in a future cleanup.
+
+---
+
 A unified REST API that combines multiple critical minerals data sources into a single, LLM-friendly interface. Designed for supply chain analysis, research, and AI-powered applications.
 
 ## Overview
