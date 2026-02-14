@@ -1,6 +1,6 @@
 # Critical Minerals Data Tools
 
-A suite of MCP servers and REST APIs for accessing critical minerals and materials data from authoritative sources. Designed for AI-powered analysis, supply chain research, and LLM integration.
+A suite of MCP servers and supporting APIs for accessing critical minerals and materials data from authoritative sources. Designed for AI-powered analysis, supply chain research, and LLM integration.
 
 ## Data Sources
 
@@ -15,7 +15,7 @@ A suite of MCP servers and REST APIs for accessing critical minerals and materia
 Data_Needs/
 ├── CLaiMM/          # CLAIMM MCP servers (standard + agnostic)
 ├── BGS_MCP/         # BGS MCP server + REST API
-├── CMM_API/         # Unified API combining both sources
+├── CMM_API/         # Legacy unified API (deprecated)
 └── README.md        # This file
 ```
 
@@ -26,7 +26,7 @@ Data_Needs/
 | **CLaiMM** (standard) | MCP | CLAIMM | Yes | AI-powered search with summarization |
 | **CLaiMM** (agnostic) | MCP | CLAIMM | No | Direct CLAIMM data access |
 | **BGS_MCP** | MCP + REST | BGS | No | Global production statistics |
-| **CMM_API** | MCP + REST | Both | No | Unified access to all data |
+| **CMM_API (legacy)** | MCP + REST | Both | No | Backward compatibility only |
 
 ## Choosing the Right Tool
 
@@ -37,22 +37,22 @@ Data_Needs/
 | US datasets + AI search | CLaiMM standard | `claimm-mcp` |
 | US datasets (raw data) | CLaiMM agnostic | `claimm-mcp-agnostic` |
 | Global production stats | BGS_MCP | `bgs-mcp` |
-| Both sources unified | CMM_API | `cmm-mcp` |
+| Both sources in one workflow | Use `claimm-mcp` + `bgs-mcp` together | Both commands |
 
 ### For Other LLMs (OpenAI, Anthropic, Google, Ollama)
 
 | Need | Recommended | Endpoint |
 |------|-------------|----------|
 | Global production stats | BGS_MCP REST | `http://localhost:8000` |
-| Both sources unified | CMM_API REST | `http://localhost:8000` |
-| US datasets only | CMM_API REST | `http://localhost:8000/claimm/*` |
+| US datasets only | CLaiMM MCP tools | N/A (MCP) |
+| Legacy unified endpoint (deprecated) | CMM_API REST | `http://localhost:8000` |
 
 ### For Collaborators Without LLM Keys
 
 Use any of the LLM-agnostic options:
 - `claimm-mcp-agnostic` - CLAIMM data via MCP
 - `bgs-mcp` - BGS data via MCP
-- `cmm-mcp` - Both sources via MCP
+- `cmm-mcp` - Legacy unified MCP (deprecated)
 - Any REST API - Direct HTTP access
 
 ## Installation
@@ -69,6 +69,7 @@ cd Data_Needs
 # Install each project
 cd CLaiMM && uv sync && cd ..
 cd BGS_MCP && uv sync && cd ..
+# Optional legacy package:
 cd CMM_API && uv sync && cd ..
 ```
 
@@ -77,24 +78,18 @@ cd CMM_API && uv sync && cd ..
 ### Start All Services
 
 ```bash
-# Terminal 1: Unified REST API (recommended)
-cd CMM_API && uv run cmm-api
-
-# Terminal 2: BGS REST API (if needed separately)
+# Terminal 1: BGS REST API
 cd BGS_MCP && uv run bgs-api
+
+# Optional legacy unified REST API (deprecated)
+cd CMM_API && uv run cmm-api
 ```
 
 ### Test the APIs
 
 ```bash
-# Unified API - search both sources
-curl "http://localhost:8000/search?q=lithium"
-
-# Unified API - top lithium producers
-curl "http://localhost:8000/bgs/ranking/lithium%20minerals?top_n=5"
-
-# Unified API - CLAIMM datasets
-curl "http://localhost:8000/claimm/datasets?q=rare%20earth"
+# BGS API - top lithium producers
+curl "http://localhost:8000/production/ranking?commodity=lithium%20minerals&top_n=5"
 
 # BGS API - cobalt supply chain
 curl "http://localhost:8000/production/ranking?commodity=cobalt,%20mine"
@@ -107,13 +102,6 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "cmm": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/CMM_API", "run", "cmm-mcp"],
-      "env": {
-        "EDX_API_KEY": "your_edx_key"
-      }
-    },
     "bgs": {
       "command": "uv",
       "args": ["--directory", "/path/to/BGS_MCP", "run", "bgs-mcp"]
@@ -130,8 +118,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```
 
 **Recommended Setup:**
-- Use `cmm` for unified access to both data sources
-- Add `bgs` or `claimm-agnostic` if you need specialized tools
+- Use `bgs` plus either `claimm-mcp` or `claimm-mcp-agnostic`
+- Add legacy `cmm-mcp` only for backward compatibility
 
 ## Project Details
 
@@ -205,7 +193,9 @@ MCP server and REST API for BGS World Mineral Statistics.
 - Technology: gallium, germanium, indium, beryl
 - Base: copper, zinc, lead, gold, silver, antimony, molybdenum, iron
 
-### CMM_API (`CMM_API/`)
+### CMM_API (`CMM_API/`, Legacy/Deprecated)
+
+> Status: Deprecated for new usage. Retained for backward compatibility.
 
 Unified API combining both CLAIMM and BGS data sources.
 
@@ -245,7 +235,7 @@ Unified API combining both CLAIMM and BGS data sources.
 import httpx
 from openai import OpenAI
 
-API_BASE = "http://localhost:8000"  # CMM_API or BGS_MCP
+API_BASE = "http://localhost:8000"  # BGS_MCP REST API
 client = OpenAI()
 
 # Get function definitions
@@ -265,7 +255,7 @@ response = client.chat.completions.create(
 import anthropic
 import httpx
 
-API_BASE = "http://localhost:8000"
+API_BASE = "http://localhost:8000"  # BGS_MCP REST API
 client = anthropic.Anthropic()
 
 functions = httpx.get(f"{API_BASE}/openai/functions").json()["functions"]
@@ -311,17 +301,14 @@ print(response.json()["message"]["content"])
 ### Plain HTTP
 
 ```bash
-# Search all sources
-curl "http://localhost:8000/search?q=lithium"
-
 # Top cobalt producers
-curl "http://localhost:8000/bgs/ranking/cobalt,%20mine?top_n=10"
+curl "http://localhost:8000/production/ranking?commodity=cobalt,%20mine&top_n=10"
 
-# CLAIMM rare earth datasets
-curl "http://localhost:8000/claimm/datasets?q=rare%20earth"
+# Country profile
+curl "http://localhost:8000/countries/AU/profile"
 
-# Data overview
-curl "http://localhost:8000/overview"
+# Commodity list
+curl "http://localhost:8000/commodities?critical_only=true"
 ```
 
 ## Environment Variables
@@ -351,22 +338,18 @@ curl "http://localhost:8000/bgs/production?commodity=cobalt,%20mine&country=AUS"
 
 ### Research Data Discovery
 
-```bash
-# Find lithium datasets
-curl "http://localhost:8000/claimm/datasets?q=lithium"
-
-# Get dataset with download URLs
-curl "http://localhost:8000/claimm/datasets/e564c03f-d309-4b2f-8972-ff0a4212b5b8"
-```
+Use `claimm-mcp` or `claimm-mcp-agnostic` tools:
+- `search_claimm_datasets` to find datasets by query
+- `get_dataset_details` to retrieve full metadata and download URLs
 
 ### Market Intelligence
 
 ```bash
 # Production trends
-curl "http://localhost:8000/bgs/production?commodity=lithium%20minerals&year_from=2018"
+curl "http://localhost:8000/production/search?commodity=lithium%20minerals&year_from=2018"
 
 # Country mineral profile
-curl "http://localhost:8000/bgs/production?country=AUS&limit=50"
+curl "http://localhost:8000/countries/AU/profile"
 ```
 
 ### AI-Powered Analysis
@@ -384,8 +367,8 @@ Use with Claude Desktop:
 |---------|-----------|-------------|
 | BGS_MCP | `test_openai.py` | OpenAI integration |
 | BGS_MCP | `test_ollama.py` | Ollama integration |
-| CMM_API | `test_openai.py` | OpenAI integration |
-| CMM_API | `test_ollama.py` | Ollama integration |
+| CMM_API (legacy) | `test_openai.py` | OpenAI integration |
+| CMM_API (legacy) | `test_ollama.py` | Ollama integration |
 
 ### Run Tests
 
@@ -395,7 +378,7 @@ cd BGS_MCP
 export OPENAI_API_KEY=your_key
 uv run python test_openai.py
 
-# CMM with Ollama
+# Legacy CMM API with Ollama
 cd CMM_API
 uv run python test_ollama.py
 ```
@@ -413,14 +396,14 @@ uv run python test_ollama.py
          ▼                 ▼            ▼          ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────┐
 │   CLaiMM MCP    │ │   BGS MCP       │ │   REST APIs         │
-│   (standard/    │ │   Server        │ │   (BGS/CMM)         │
-│    agnostic)    │ │                 │ │                     │
+│   (standard/    │ │   Server        │ │   (BGS primary,     │
+│    agnostic)    │ │                 │ │    CMM legacy)      │
 └────────┬────────┘ └────────┬────────┘ └──────────┬──────────┘
          │                   │                     │
          ▼                   ▼                     ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────┐
-│   EDX Client    │ │   BGS Client    │ │   Unified Client    │
-│                 │ │                 │ │   (EDX + BGS)       │
+│   EDX Client    │ │   BGS Client    │ │   Legacy Unified    │
+│                 │ │                 │ │   Client (optional) │
 └────────┬────────┘ └────────┬────────┘ └──────────┬──────────┘
          │                   │                     │
          ▼                   ▼                     ▼

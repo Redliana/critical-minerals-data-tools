@@ -64,6 +64,31 @@ bgs_data/
 # Temporary files
 *.tmp
 *.temp
+
+# Local non-code artifacts
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.tar
+*.tar.gz
+*.zip
+~$*
+
+# Local working directories (non-source)
+/Data_Types/
+/GCAM/
+/Jen/
+/Workflows/
+
+# Local research notebooks/logs
+/demo.ipynb
+/PROJECT_LOG.md
 # Claude local settings
 .claude/
 settings.local.json
+
+# Local MCP config with secrets
+*.mcp.json

@@ -7,6 +7,9 @@ from typing import Any
 import httpx
 from pydantic import BaseModel
 
+from cmm_data.clients import BGSClient as CoreBGSClient
+from cmm_data.clients import CLAIMMClient as CoreCLAIMMClient
+
 from .config import get_settings
 
 # ============================================================================
@@ -80,8 +83,7 @@ class BGSClient:
 
     def __init__(self):
         settings = get_settings()
-        self.base_url = settings.bgs_base_url
-        self.timeout = 60.0
+        self._core = CoreBGSClient(base_url=settings.bgs_base_url, timeout=60.0)
 
     async def search_production(
         self,
@@ -93,75 +95,35 @@ class BGSClient:
         limit: int = 100,
     ) -> list[MineralRecord]:
         """Search BGS production data."""
-        params = {"limit": limit, "bgs_statistic_type_trans": statistic_type}
-
-        if commodity:
-            params["bgs_commodity_trans"] = commodity
-        if country:
-            if len(country) <= 3:
-                params["country_iso3_code"] = country.upper()
-            else:
-                params["country_trans"] = country
-
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(
-                f"{self.base_url}/items",
-                params=params,
-                headers={"Accept": "application/json"},
+        core_records = await self._core.search_production(
+            commodity=commodity,
+            country=country if (country and len(country) > 3) else None,
+            country_iso=country if (country and len(country) <= 3) else None,
+            year_from=year_from,
+            year_to=year_to,
+            statistic_type=statistic_type,
+            limit=limit,
+        )
+        return [
+            MineralRecord(
+                source="BGS",
+                commodity=r.commodity,
+                country=r.country,
+                country_iso=r.country_iso3,
+                year=r.year,
+                quantity=r.quantity,
+                units=r.units,
+                statistic_type=r.statistic_type,
+                notes=r.notes,
             )
-            response.raise_for_status()
-            data = response.json()
-
-        records = []
-        for feature in data.get("features", []):
-            props = feature.get("properties", {})
-            year_str = props.get("year", "")
-            year = int(year_str[:4]) if year_str and len(year_str) >= 4 else None
-
-            # Filter by year range
-            if year_from and year and year < year_from:
-                continue
-            if year_to and year and year > year_to:
-                continue
-
-            records.append(
-                MineralRecord(
-                    source="BGS",
-                    commodity=props.get("bgs_commodity_trans", ""),
-                    country=props.get("country_trans"),
-                    country_iso=props.get("country_iso3_code"),
-                    year=year,
-                    quantity=props.get("quantity"),
-                    units=props.get("units"),
-                    statistic_type=statistic_type,
-                    notes=props.get("concat_table_notes_text"),
-                )
-            )
-
-        return sorted(records, key=lambda x: x.year or 0, reverse=True)[:limit]
+            for r in core_records
+        ]
 
     async def get_commodities(self, critical_only: bool = False) -> list[str]:
         """Get list of BGS commodities."""
         if critical_only:
             return self.CRITICAL_MINERALS.copy()
-
-        commodities = set()
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            for offset in [0, 5000]:
-                response = await client.get(
-                    f"{self.base_url}/items",
-                    params={"limit": 5000, "offset": offset},
-                    headers={"Accept": "application/json"},
-                )
-                if response.status_code != 200:
-                    break
-                data = response.json()
-                for feature in data.get("features", []):
-                    commodity = feature.get("properties", {}).get("bgs_commodity_trans")
-                    if commodity:
-                        commodities.add(commodity)
-
-        return sorted(commodities)
+        return await self._core.get_commodities()
 
     async def get_ranking(
         self,
@@ -218,32 +180,11 @@ class CLAIMMClient:
 
     def __init__(self):
         settings = get_settings()
-        self.base_url = settings.edx_base_url
-        self.api_key = settings.edx_api_key
-        self.timeout = 30.0
-
-    def _get_headers(self) -> dict:
-        """Get API headers."""
-        headers = {"User-Agent": "EDX-USER", "Content-Type": "application/json"}
-        if self.api_key:
-            headers["X-CKAN-API-Key"] = self.api_key
-        return headers
-
-    async def _request(self, endpoint: str, params: dict | None = None) -> dict:
-        """Make API request."""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(
-                f"{self.base_url}/{endpoint}",
-                params=params,
-                headers=self._get_headers(),
-            )
-            response.raise_for_status()
-            result = response.json()
-
-            if not result.get("success", False):
-                raise Exception(f"EDX API error: {result.get('error', {})}")
-
-            return result.get("result", {})
+        self._core = CoreCLAIMMClient(
+            base_url=settings.edx_base_url,
+            api_key=settings.edx_api_key,
+            timeout=30.0,
+        )
 
     async def search_datasets(
         self,
@@ -252,99 +193,54 @@ class CLAIMMClient:
         limit: int = 20,
     ) -> list[DatasetInfo]:
         """Search CLAIMM datasets."""
-        params: dict[str, Any] = {"rows": limit, "start": 0}
-
-        # Always include claimm in query
-        search_query = f"claimm {query}" if query else "claimm"
-        params["q"] = search_query
-
-        if tags:
-            params["fq"] = " AND ".join(f"tags:{t}" for t in tags)
-
-        result = await self._request("package_search", params)
-
-        datasets = []
-        for pkg in result.get("results", []):
-            resources = [
-                {
-                    "id": r.get("id"),
-                    "name": r.get("name"),
-                    "format": r.get("format"),
-                    "size": r.get("size"),
-                    "url": f"https://edx.netl.doe.gov/resource/{r.get('id')}/download",
-                }
-                for r in pkg.get("resources", [])
-            ]
-
-            datasets.append(
-                DatasetInfo(
-                    source="CLAIMM",
-                    id=pkg.get("id", ""),
-                    title=pkg.get("title", pkg.get("name", "")),
-                    description=pkg.get("notes"),
-                    tags=[t.get("name", "") for t in pkg.get("tags", [])],
-                    resources=resources,
-                )
+        core_datasets = await self._core.search_datasets(query=query, tags=tags, limit=limit)
+        return [
+            DatasetInfo(
+                source=ds.source,
+                id=ds.id,
+                title=ds.title,
+                description=ds.description,
+                tags=ds.tags,
+                resources=[
+                    {
+                        "id": r.id,
+                        "name": r.name,
+                        "format": r.format,
+                        "size": r.size,
+                        "url": r.url,
+                    }
+                    for r in ds.resources
+                ],
             )
-
-        return datasets
+            for ds in core_datasets
+        ]
 
     async def get_dataset(self, dataset_id: str) -> DatasetInfo | None:
         """Get dataset details."""
-        try:
-            result = await self._request("package_show", {"id": dataset_id})
-
-            resources = [
-                {
-                    "id": r.get("id"),
-                    "name": r.get("name"),
-                    "format": r.get("format"),
-                    "size": r.get("size"),
-                    "url": f"https://edx.netl.doe.gov/resource/{r.get('id')}/download",
-                }
-                for r in result.get("resources", [])
-            ]
-
-            return DatasetInfo(
-                source="CLAIMM",
-                id=result.get("id", ""),
-                title=result.get("title", result.get("name", "")),
-                description=result.get("notes"),
-                tags=[t.get("name", "") for t in result.get("tags", [])],
-                resources=resources,
-            )
-        except (httpx.HTTPError, OSError, KeyError):
+        core_dataset = await self._core.get_dataset(dataset_id)
+        if not core_dataset:
             return None
+        return DatasetInfo(
+            source=core_dataset.source,
+            id=core_dataset.id,
+            title=core_dataset.title,
+            description=core_dataset.description,
+            tags=core_dataset.tags,
+            resources=[
+                {
+                    "id": r.id,
+                    "name": r.name,
+                    "format": r.format,
+                    "size": r.size,
+                    "url": r.url,
+                }
+                for r in core_dataset.resources
+            ],
+        )
 
     async def get_categories(self) -> dict[str, int]:
         """Get dataset categories and counts."""
-        datasets = await self.search_datasets(limit=200)
-
-        categories = {}
-        keywords = {
-            "Rare Earth Elements": ["rare earth", "ree", "lanthanide"],
-            "Produced Water": ["produced water", "newts", "brine"],
-            "Coal & Coal Byproducts": ["coal", "coal ash", "fly ash"],
-            "Mine Waste": ["mine waste", "tailings", "mining"],
-            "Lithium": ["lithium"],
-            "Geochemistry": ["geochemistry", "geochemical"],
-            "Geology": ["geology", "geological", "geophysic"],
-        }
-
-        for ds in datasets:
-            text = f"{ds.title} {ds.description or ''} {' '.join(ds.tags)}".lower()
-            categorized = False
-
-            for category, kws in keywords.items():
-                if any(kw in text for kw in kws):
-                    categories[category] = categories.get(category, 0) + 1
-                    categorized = True
-                    break
-
-            if not categorized:
-                categories["Other"] = categories.get("Other", 0) + 1
-
-        return categories
+        return await self._core.get_categories()
 
 
 # ============================================================================

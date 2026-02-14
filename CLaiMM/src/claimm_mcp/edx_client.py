@@ -8,6 +8,8 @@ from typing import Any
 import httpx
 from pydantic import BaseModel
 
+from cmm_data.clients import CLAIMMClient as CoreCLAIMMClient
+
 from .config import get_settings
 
 
@@ -58,6 +60,40 @@ class EDXClient:
             "User-Agent": "EDX-USER",
             "Content-Type": "application/json",
         }
+        self._core = CoreCLAIMMClient(
+            base_url=self.settings.edx_base_url,
+            api_key=self.settings.edx_api_key,
+            timeout=30.0,
+        )
+
+    @staticmethod
+    def _submission_from_core(dataset: Any) -> Submission:
+        """Convert cmm_data dataset model into local Submission model."""
+        return Submission(
+            id=dataset.id,
+            name=dataset.id,
+            title=dataset.title,
+            notes=dataset.description,
+            author=None,
+            organization=None,
+            tags=dataset.tags,
+            resources=[
+                Resource(
+                    id=res.id,
+                    name=res.name or res.id,
+                    description=None,
+                    format=res.format,
+                    size=res.size,
+                    url=res.url,
+                    created=None,
+                    last_modified=None,
+                    package_id=dataset.id,
+                )
+                for res in dataset.resources
+            ],
+            metadata_created=None,
+            metadata_modified=None,
+        )
 
     async def _request(
         self,
@@ -176,37 +212,10 @@ class EDXClient:
         Returns:
             Submission with full metadata and resources
         """
-        result = await self._request("GET", "package_show", params={"id": submission_id})
-
-        resources = [
-            Resource(
-                id=r.get("id", ""),
-                name=r.get("name", ""),
-                description=r.get("description"),
-                format=r.get("format"),
-                size=r.get("size"),
-                url=r.get("url"),
-                created=r.get("created"),
-                last_modified=r.get("last_modified"),
-                package_id=result.get("id"),
-            )
-            for r in result.get("resources", [])
-        ]
-
-        tags = [t.get("name", "") for t in result.get("tags", [])]
-
-        return Submission(
-            id=result.get("id", ""),
-            name=result.get("name", ""),
-            title=result.get("title"),
-            notes=result.get("notes"),
-            author=result.get("author"),
-            organization=(result.get("organization") or {}).get("title"),
-            tags=tags,
-            resources=resources,
-            metadata_created=result.get("metadata_created"),
-            metadata_modified=result.get("metadata_modified"),
-        )
+        dataset = await self._core.get_dataset(submission_id)
+        if dataset is None:
+            raise KeyError(f"Dataset not found: {submission_id}")
+        return self._submission_from_core(dataset)
 
     async def list_group_submissions(
         self,
@@ -297,67 +306,62 @@ class EDXClient:
         Returns:
             List of matching submissions
         """
-        # Build filter query (fq) for CKAN
-        fq_parts = []
-
-        # If specific groups provided, filter by them
+        # Group filtering is not yet supported in cmm_data core client.
+        # Fall back to direct CKAN package_search in this specialized case.
         if groups:
-            for g in groups:
-                fq_parts.append(f"groups:{g}")
+            fq_parts = []
+            for group in groups:
+                fq_parts.append(f"groups:{group}")
+            if tags:
+                for tag in tags:
+                    fq_parts.append(f"tags:{tag}")
 
-        if tags:
-            for tag in tags:
-                fq_parts.append(f"tags:{tag}")
+            params: dict[str, Any] = {"rows": limit, "start": offset}
+            if query:
+                params["q"] = query
+            if fq_parts:
+                params["fq"] = " AND ".join(fq_parts)
 
-        params: dict[str, Any] = {
-            "rows": limit,
-            "start": offset,
-        }
+            result = await self._request("GET", "package_search", params=params)
+            submissions = []
+            for pkg in result.get("results", []):
+                resources = [
+                    Resource(
+                        id=r.get("id", ""),
+                        name=r.get("name", ""),
+                        description=r.get("description"),
+                        format=r.get("format"),
+                        size=r.get("size"),
+                        url=r.get("url"),
+                        created=r.get("created"),
+                        last_modified=r.get("last_modified"),
+                    )
+                    for r in pkg.get("resources", [])
+                ]
 
-        if query:
-            params["q"] = query
-
-        if fq_parts:
-            params["fq"] = " AND ".join(fq_parts)
-
-        result = await self._request("GET", "package_search", params=params)
-
-        submissions = []
-        for pkg in result.get("results", []):
-            resources = [
-                Resource(
-                    id=r.get("id", ""),
-                    name=r.get("name", ""),
-                    description=r.get("description"),
-                    format=r.get("format"),
-                    size=r.get("size"),
-                    url=r.get("url"),
-                    created=r.get("created"),
-                    last_modified=r.get("last_modified"),
+                tags_list = [t.get("name", "") for t in pkg.get("tags", [])]
+                submissions.append(
+                    Submission(
+                        id=pkg.get("id", ""),
+                        name=pkg.get("name", ""),
+                        title=pkg.get("title"),
+                        notes=pkg.get("notes"),
+                        author=pkg.get("author"),
+                        organization=pkg.get("organization", {}).get("title")
+                        if isinstance(pkg.get("organization"), dict)
+                        else None,
+                        tags=tags_list,
+                        resources=resources,
+                        metadata_created=pkg.get("metadata_created"),
+                        metadata_modified=pkg.get("metadata_modified"),
+                    )
                 )
-                for r in pkg.get("resources", [])
-            ]
+            return submissions
 
-            tags_list = [t.get("name", "") for t in pkg.get("tags", [])]
-
-            submissions.append(
-                Submission(
-                    id=pkg.get("id", ""),
-                    name=pkg.get("name", ""),
-                    title=pkg.get("title"),
-                    notes=pkg.get("notes"),
-                    author=pkg.get("author"),
-                    organization=pkg.get("organization", {}).get("title")
-                    if isinstance(pkg.get("organization"), dict)
-                    else None,
-                    tags=tags_list,
-                    resources=resources,
-                    metadata_created=pkg.get("metadata_created"),
-                    metadata_modified=pkg.get("metadata_modified"),
-                )
-            )
-
-        return submissions
+        fetch_limit = max(limit + offset, limit)
+        datasets = await self._core.search_datasets(query=query, tags=tags, limit=fetch_limit)
+        datasets = datasets[offset:offset + limit]
+        return [self._submission_from_core(ds) for ds in datasets]
 
     async def create_submission(
         self,

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TradeRecord(BaseModel):
     """A single trade record from UN Comtrade."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     period: str = Field(description="Year of the trade record")
     reporter_code: int = Field(alias="reporterCode", description="Reporter country code")
@@ -45,9 +47,6 @@ class TradeRecord(BaseModel):
         if self.partner_code == 0:
             return "World"
         return self.partner or f"Country {self.partner_code}"
-
-    class Config:
-        populate_by_name = True
 
 
 class CountryReference(BaseModel):

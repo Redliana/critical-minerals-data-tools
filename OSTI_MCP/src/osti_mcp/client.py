@@ -1,4 +1,4 @@
-"""OSTI data client for accessing document catalog and metadata."""
+"""OSTI client backed by cmm_data shared clients."""
 
 from __future__ import annotations
 
@@ -7,8 +7,9 @@ import os
 from pathlib import Path
 from typing import Optional
 
-import pandas as pd
 from pydantic import BaseModel
+
+from cmm_data.clients import OSTIClient as CoreOSTIClient
 
 
 class OSTIDocument(BaseModel):
@@ -28,91 +29,67 @@ class OSTIDocument(BaseModel):
 
 
 class OSTIClient:
-    """Client for accessing OSTI document data."""
+    """Compatibility wrapper for OSTI operations used by MCP server."""
 
-    # CMM commodity categories
-    COMMODITIES = {
-        "HREE": "Heavy Rare Earth Elements",
-        "LREE": "Light Rare Earth Elements",
-        "CO": "Cobalt",
-        "LI": "Lithium",
-        "GA": "Gallium",
-        "GR": "Graphite",
-        "NI": "Nickel",
-        "CU": "Copper",
-        "GE": "Germanium",
-        "OTH": "Other Critical Materials",
-    }
+    COMMODITIES = CoreOSTIClient.COMMODITIES
+
+    @staticmethod
+    def _has_valid_catalog(path: Path) -> bool:
+        catalog = path / "document_catalog.json"
+        if not catalog.exists():
+            return False
+        try:
+            with catalog.open(encoding="utf-8") as handle:
+                json.load(handle)
+            return True
+        except (OSError, ValueError, TypeError):
+            return False
+
+    @classmethod
+    def _resolve_default_data_path(cls) -> Path:
+        workspace_root = Path(__file__).resolve().parents[5]
+        candidates = [
+            workspace_root / "Globus_Sharing" / "OSTI_retrieval",
+            workspace_root / "Globus_Sharing" / "OSTI_retrieval_2",
+            workspace_root / "Corpus" / "OSTI" / "OSTI_retrieval_2",
+            workspace_root / "Corpus" / "OSTI" / "OSTI_retrieval_1",
+            workspace_root / "LLM_Fine_Tuning" / "OSTI_retrieval_1",
+        ]
+        for candidate in candidates:
+            if cls._has_valid_catalog(candidate):
+                return candidate
+        # Fallback preserves previous behavior and surfaces a clear error downstream.
+        return workspace_root / "Globus_Sharing" / "OSTI_retrieval"
 
     def __init__(self, data_path: Optional[str] = None):
-        """Initialize OSTI client.
-
-        Args:
-            data_path: Path to OSTI_retrieval directory. If not provided,
-                      attempts to find it relative to project structure.
-        """
         if data_path:
-            self.data_path = Path(data_path)
+            resolved = Path(data_path)
         else:
-            # Try to find the data path from environment or default locations
             env_path = os.environ.get("OSTI_DATA_PATH")
             if env_path:
-                self.data_path = Path(env_path)
+                resolved = Path(env_path)
             else:
-                # Default relative to typical project structure
-                self.data_path = Path(__file__).parents[4] / "Globus_Sharing" / "OSTI_retrieval"
+                resolved = self._resolve_default_data_path()
+        self._core = CoreOSTIClient(data_path=resolved)
 
-        self._catalog: Optional[pd.DataFrame] = None
-
-    @property
-    def catalog(self) -> pd.DataFrame:
-        """Load and cache the document catalog."""
-        if self._catalog is None:
-            catalog_path = self.data_path / "document_catalog.json"
-            if not catalog_path.exists():
-                raise FileNotFoundError(
-                    f"Document catalog not found at {catalog_path}. "
-                    "Set OSTI_DATA_PATH environment variable or provide data_path."
-                )
-            with open(catalog_path) as f:
-                data = json.load(f)
-            self._catalog = pd.DataFrame(data)
-        return self._catalog
+    @staticmethod
+    def _to_document(doc) -> OSTIDocument:
+        return OSTIDocument(
+            osti_id=doc.osti_id,
+            title=doc.title,
+            authors=doc.authors,
+            publication_date=doc.publication_date,
+            description=doc.description,
+            subjects=doc.subjects,
+            commodity_category=doc.commodity_category,
+            doi=doc.doi,
+            product_type=doc.product_type,
+            research_orgs=doc.research_orgs,
+            sponsor_orgs=doc.sponsor_orgs,
+        )
 
     def get_statistics(self) -> dict:
-        """Get collection statistics."""
-        df = self.catalog
-
-        stats = {
-            "total_documents": len(df),
-            "commodities": {},
-            "product_types": {},
-            "year_range": {},
-        }
-
-        # Count by commodity
-        if "commodity_category" in df.columns:
-            commodity_counts = df["commodity_category"].value_counts().to_dict()
-            stats["commodities"] = {
-                k: {"count": v, "name": self.COMMODITIES.get(k, k)}
-                for k, v in commodity_counts.items()
-            }
-
-        # Count by product type
-        if "product_type" in df.columns:
-            stats["product_types"] = df["product_type"].value_counts().to_dict()
-
-        # Year range
-        if "publication_date" in df.columns:
-            dates = pd.to_datetime(df["publication_date"], errors="coerce")
-            years = dates.dt.year.dropna()
-            if len(years) > 0:
-                stats["year_range"] = {
-                    "min": int(years.min()),
-                    "max": int(years.max()),
-                }
-
-        return stats
+        return self._core.get_statistics()
 
     def search_documents(
         self,
@@ -123,158 +100,27 @@ class OSTIClient:
         year_to: Optional[int] = None,
         limit: int = 50,
     ) -> list[OSTIDocument]:
-        """Search documents with filters.
-
-        Args:
-            query: Text search in title/description
-            commodity: Filter by commodity category (HREE, LREE, CO, LI, etc.)
-            product_type: Filter by product type (Technical Report, Journal Article)
-            year_from: Minimum publication year
-            year_to: Maximum publication year
-            limit: Maximum results to return
-
-        Returns:
-            List of matching OSTIDocument objects
-        """
-        df = self.catalog.copy()
-
-        # Text search
-        if query:
-            query_lower = query.lower()
-            mask = (
-                df["title"].str.lower().str.contains(query_lower, na=False)
-                | df["description"].fillna("").str.lower().str.contains(query_lower, na=False)
-                | df["subjects"].astype(str).str.lower().str.contains(query_lower, na=False)
-            )
-            df = df[mask]
-
-        # Commodity filter
-        if commodity:
-            commodity_upper = commodity.upper()
-            df = df[df["commodity_category"] == commodity_upper]
-
-        # Product type filter
-        if product_type:
-            df = df[df["product_type"].str.lower() == product_type.lower()]
-
-        # Year filters
-        if year_from or year_to:
-            dates = pd.to_datetime(df["publication_date"], errors="coerce")
-            years = dates.dt.year
-            if year_from:
-                df = df[years >= year_from]
-            if year_to:
-                df = df[years <= year_to]
-
-        # Limit results
-        df = df.head(limit)
-
-        # Convert to OSTIDocument objects
-        documents = []
-        for _, row in df.iterrows():
-            doc = OSTIDocument(
-                osti_id=str(row.get("osti_id", "")),
-                title=row.get("title", ""),
-                authors=row.get("authors", []) if isinstance(row.get("authors"), list) else [],
-                publication_date=row.get("publication_date"),
-                description=row.get("description"),
-                subjects=row.get("subjects", []) if isinstance(row.get("subjects"), list) else [],
-                commodity_category=row.get("commodity_category"),
-                doi=row.get("doi"),
-                product_type=row.get("product_type"),
-                research_orgs=row.get("research_orgs", [])
-                if isinstance(row.get("research_orgs"), list)
-                else [],
-                sponsor_orgs=row.get("sponsor_orgs", [])
-                if isinstance(row.get("sponsor_orgs"), list)
-                else [],
-            )
-            documents.append(doc)
-
-        return documents
+        docs = self._core.search_documents(
+            query=query,
+            commodity=commodity,
+            product_type=product_type,
+            year_from=year_from,
+            year_to=year_to,
+            limit=limit,
+        )
+        return [self._to_document(doc) for doc in docs]
 
     def get_document(self, osti_id: str) -> Optional[OSTIDocument]:
-        """Get a specific document by OSTI ID.
-
-        Args:
-            osti_id: The OSTI document identifier
-
-        Returns:
-            OSTIDocument if found, None otherwise
-        """
-        df = self.catalog
-        match = df[df["osti_id"].astype(str) == str(osti_id)]
-
-        if match.empty:
-            return None
-
-        row = match.iloc[0]
-        return OSTIDocument(
-            osti_id=str(row.get("osti_id", "")),
-            title=row.get("title", ""),
-            authors=row.get("authors", []) if isinstance(row.get("authors"), list) else [],
-            publication_date=row.get("publication_date"),
-            description=row.get("description"),
-            subjects=row.get("subjects", []) if isinstance(row.get("subjects"), list) else [],
-            commodity_category=row.get("commodity_category"),
-            doi=row.get("doi"),
-            product_type=row.get("product_type"),
-            research_orgs=row.get("research_orgs", [])
-            if isinstance(row.get("research_orgs"), list)
-            else [],
-            sponsor_orgs=row.get("sponsor_orgs", [])
-            if isinstance(row.get("sponsor_orgs"), list)
-            else [],
-        )
+        doc = self._core.get_document(osti_id)
+        return self._to_document(doc) if doc else None
 
     def list_commodities(self) -> dict[str, str]:
-        """List available commodity categories with descriptions."""
-        return self.COMMODITIES.copy()
+        return self._core.list_commodities()
 
     def get_documents_by_commodity(self, commodity: str, limit: int = 100) -> list[OSTIDocument]:
-        """Get documents for a specific commodity category.
-
-        Args:
-            commodity: Commodity code (HREE, LREE, CO, LI, GA, GR, NI, CU, GE, OTH)
-            limit: Maximum results to return
-
-        Returns:
-            List of OSTIDocument objects
-        """
-        return self.search_documents(commodity=commodity, limit=limit)
+        docs = self._core.get_documents_by_commodity(commodity=commodity, limit=limit)
+        return [self._to_document(doc) for doc in docs]
 
     def get_recent_documents(self, limit: int = 20) -> list[OSTIDocument]:
-        """Get most recently published documents.
-
-        Args:
-            limit: Maximum results to return
-
-        Returns:
-            List of OSTIDocument objects sorted by publication date (newest first)
-        """
-        df = self.catalog.copy()
-        df["_date"] = pd.to_datetime(df["publication_date"], errors="coerce")
-        df = df.sort_values("_date", ascending=False).head(limit)
-
-        documents = []
-        for _, row in df.iterrows():
-            doc = OSTIDocument(
-                osti_id=str(row.get("osti_id", "")),
-                title=row.get("title", ""),
-                authors=row.get("authors", []) if isinstance(row.get("authors"), list) else [],
-                publication_date=row.get("publication_date"),
-                description=row.get("description"),
-                subjects=row.get("subjects", []) if isinstance(row.get("subjects"), list) else [],
-                commodity_category=row.get("commodity_category"),
-                doi=row.get("doi"),
-                product_type=row.get("product_type"),
-                research_orgs=row.get("research_orgs", [])
-                if isinstance(row.get("research_orgs"), list)
-                else [],
-                sponsor_orgs=row.get("sponsor_orgs", [])
-                if isinstance(row.get("sponsor_orgs"), list)
-                else [],
-            )
-            documents.append(doc)
-
-        return documents
+        docs = self._core.get_recent_documents(limit=limit)
+        return [self._to_document(doc) for doc in docs]

@@ -1,0 +1,39 @@
+name: Data_Needs Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest httpx pydantic
+
+      - name: Compile Python sources
+        env:
+          PYTHONPYCACHEPREFIX: /tmp/pycache
+        run: |
+          python -m compileall -q BGS_MCP/src
+          python -m compileall -q CLaiMM/src
+          python -m compileall -q CMM_API/src
+          python -m compileall -q OSTI_MCP/src
+          python -m compileall -q UNComtrade_MCP/src
+
+      - name: Run unit tests
+        env:
+          PYTHONPATH: UNComtrade_MCP/src
+        run: |
+          pytest -q UNComtrade_MCP/tests/test_client.py
