@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant Host as MCP Host
+    participant Client as MCP Client
+    participant Server as MCP Server
+    participant ArXiv as ArXiv API
+    participant LLM as Commercial LLM
+    
+    Note over Host,Server: Phase 1: Initialization
+    Client->>Server: initialize (capabilities)
+    Server-->>Client: initialize response (server capabilities)
+    Client->>Server: initialized notification
+    
+    Note over Host,Server: Phase 2: Tool Discovery
+    Client->>Server: tools/list
+    Server-->>Client: tools list (search_arxiv, summarize_paper)
+    
+    Note over Host,Server: Phase 3: Tool Execution - Search ArXiv
+    Host->>Client: User query: "Find papers on transformers"
+    Client->>Server: tools/call (search_arxiv)
+    Server->>ArXiv: HTTP GET /api/query?search_query=...
+    ArXiv-->>Server: Atom XML response
+    Server-->>Client: Tool result (parsed papers)
+    Client-->>Host: Display results to user
+    
+    Note over Host,Server: Phase 4: Tool Execution - Summarize with LLM
+    Host->>Client: User: "Summarize this paper"
+    Client->>Server: tools/call (summarize_paper)
+    Server->>LLM: API request (paper abstract + prompt)
+    LLM-->>Server: Summary text
+    Server-->>Client: Tool result (summary)
+    Client-->>Host: Display summary to user

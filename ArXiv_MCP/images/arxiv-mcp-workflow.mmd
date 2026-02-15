@@ -1,0 +1,36 @@
+graph TB
+    subgraph "AI Application (MCP Host)"
+        Host[MCP Host<br/>Claude Desktop / VS Code]
+        Client[MCP Client]
+    end
+    
+    subgraph "MCP Server"
+        Server[ArXiv MCP Server]
+        Tools[Tools Layer]
+        SearchTool[search_arxiv Tool]
+        SummarizeTool[summarize_paper Tool]
+    end
+    
+    subgraph "External Services"
+        ArXiv[ArXiv API<br/>export.arxiv.org/api]
+        LLM[Commercial LLM<br/>GPT-5 / Claude Opus 4.5]
+    end
+    
+    Host -->|manages| Client
+    Client <-->|JSON-RPC 2.0<br/>STDIO/HTTP| Server
+    Server -->|exposes| Tools
+    Tools -->|contains| SearchTool
+    Tools -->|contains| SummarizeTool
+    SearchTool -->|HTTP GET| ArXiv
+    ArXiv -->|Atom XML| SearchTool
+    SummarizeTool -->|API Request| LLM
+    LLM -->|Summary Response| SummarizeTool
+    
+    style Host fill:#e1f5ff
+    style Client fill:#b3e0ff
+    style Server fill:#ffe6cc
+    style Tools fill:#fff4cc
+    style SearchTool fill:#d4edda
+    style SummarizeTool fill:#d4edda
+    style ArXiv fill:#f8d7da
+    style LLM fill:#d1ecf1

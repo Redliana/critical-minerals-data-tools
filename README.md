@@ -15,6 +15,9 @@ A suite of MCP servers and supporting APIs for accessing critical minerals and m
 Data_Needs/
 ├── CLaiMM/          # CLAIMM MCP servers (standard + agnostic)
 ├── BGS_MCP/         # BGS MCP server + REST API
+├── UNComtrade_MCP/  # UN Comtrade MCP server
+├── GoogleScholar_MCP/ # Google Scholar MCP server
+├── ArXiv_MCP/       # ArXiv MCP server
 ├── CMM_API/         # Legacy unified API (deprecated)
 └── README.md        # This file
 ```
@@ -26,6 +29,9 @@ Data_Needs/
 | **CLaiMM** (standard) | MCP | CLAIMM | Yes | AI-powered search with summarization |
 | **CLaiMM** (agnostic) | MCP | CLAIMM | No | Direct CLAIMM data access |
 | **BGS_MCP** | MCP + REST | BGS | No | Global production statistics |
+| **UNComtrade_MCP** | MCP | UN Comtrade | No | International trade flows by HS code |
+| **GoogleScholar_MCP** | MCP | Google Scholar (SerpAPI) | No | Academic literature search |
+| **ArXiv_MCP** | MCP | arXiv + optional LLM summaries | Optional | Preprint search and summarization |
 | **CMM_API (legacy)** | MCP + REST | Both | No | Backward compatibility only |
 
 ## Choosing the Right Tool
@@ -69,6 +75,9 @@ cd Data_Needs
 # Install each project
 cd CLaiMM && uv sync && cd ..
 cd BGS_MCP && uv sync && cd ..
+cd UNComtrade_MCP && uv sync && cd ..
+cd GoogleScholar_MCP && uv sync && cd ..
+cd ArXiv_MCP && uv sync && cd ..
 # Optional legacy package:
 cd CMM_API && uv sync && cd ..
 ```

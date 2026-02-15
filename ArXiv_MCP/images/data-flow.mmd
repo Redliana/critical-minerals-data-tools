@@ -1,0 +1,52 @@
+graph LR
+    subgraph Input
+        A[User Query:<br/>'machine learning papers']
+    end
+    
+    subgraph "MCP Server Processing"
+        B[Parse Query]
+        C[Construct ArXiv<br/>Search URL]
+        D[Send HTTP Request]
+        E[Parse Atom XML<br/>Response]
+        F[Extract Paper<br/>Metadata]
+        G[Format Results]
+    end
+    
+    subgraph "ArXiv API"
+        H[ArXiv Query<br/>Interface]
+        I[Return Atom Feed]
+    end
+    
+    subgraph "LLM Integration"
+        J[Prepare LLM Prompt]
+        K[Send to LLM API]
+        L[Receive Summary]
+        M[Format Response]
+    end
+    
+    subgraph Output
+        N[Return to Client:<br/>Paper List or Summary]
+    end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> H
+    H --> I
+    I --> E
+    E --> F
+    F --> G
+    G --> N
+    
+    F -.Optional: Summarize.-> J
+    J --> K
+    K --> L
+    L --> M
+    M --> N
+    
+    style A fill:#e3f2fd
+    style N fill:#c8e6c9
+    style H fill:#fff9c4
+    style I fill:#fff9c4
+    style K fill:#f8bbd0
+    style L fill:#f8bbd0

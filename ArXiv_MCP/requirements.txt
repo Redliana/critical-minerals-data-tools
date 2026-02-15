@@ -1,0 +1,11 @@
+# MCP Server Dependencies
+mcp>=1.2.0
+
+# HTTP client for API requests
+httpx>=0.27.0
+
+# Optional: OpenAI Python SDK (alternative to direct API calls)
+openai>=1.0.0
+
+# Optional: Anthropic Python SDK (alternative to direct API calls)
+anthropic>=0.18.0
